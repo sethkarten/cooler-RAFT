@@ -48,7 +48,7 @@ class RaftNode:
     def replicate_log(self):
         raise NotImplementedError
     
-    def VoteResponse(self):
+    def vote_request(self):
         raise NotImplementedError
     
     def vote_response(self):
