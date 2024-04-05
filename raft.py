@@ -21,7 +21,7 @@ class RaftNode:
         self.votes_total = votes_total
         self.log = log
         self.commit_length = commit_length
-        self.peers = peers
+        self.peers = peers # NOTE: logic in election() assumes self.peers includes self
         # sent_length: Vec<u64>, // []
         # acked_length: Vec<u64>, // []
 
