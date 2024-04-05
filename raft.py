@@ -12,7 +12,7 @@ class Event(Enum):
     Broadcast = 6
 
 class RaftNode:
-    def __init__(self, id, term_number, voted_id, role, leader, votes_total, log, commit_length):
+    def __init__(self, id, term_number, voted_id, role, leader, votes_total, log, commit_length, peers):
         self.id = id
         self.term_number = term_number
         self.voted_id = voted_id
@@ -21,6 +21,7 @@ class RaftNode:
         self.votes_total = votes_total
         self.log = log
         self.commit_length = commit_length
+        self.peers = peers
         # sent_length: Vec<u64>, // []
         # acked_length: Vec<u64>, // []
 
@@ -42,8 +43,47 @@ class RaftNode:
             case Event.Broadcast:
                 self.broadcast()    
     
-    def election(self):
-        raise NotImplementedError
+    async def election(self):
+        """
+        Initiates a new leader election. 
+
+        Node:
+            (1) Changes to 'candidate',
+            (2) Votes for itself, 
+            (3) Increments term number, 
+            (4) Sends out vote requests to other nodes in the cluster
+        """
+
+        if self.role == 'leader':
+            return
+        
+        self.role = 'candidate'
+        
+        self.id = self.state.id
+        self.voted_id = self.id
+        self.votes_received = set()
+        self.votes_received.add(self.id)
+
+        self.term_number += 1
+
+        # Determine if candidate's last log entry is at least as up-to-date as node's log
+        last_term = 0
+        if len(self.log) > 0:
+            last_term = self.log[-1].term
+        
+        # Start vote request message 
+        msg = {
+            'cid': self.id,
+            'cterm': self.term_number,
+            'clog_length': len(self.log),
+            'clog_term': last_term
+        }
+        
+        # Send async vote requests to all peers
+        for i in range(len(self.peers)):
+            if i == self.id:
+                continue
+            await self.send_vote_request(i, msg)
     
     def replicate_log(self):
         raise NotImplementedError
