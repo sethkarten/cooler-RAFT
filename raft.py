@@ -73,10 +73,10 @@ class RaftNode:
         
         # Start vote request message 
         msg = {
-            'cid': self.id,
-            'cterm': self.term_number,
-            'clog_length': len(self.log),
-            'clog_term': last_term
+            'candidate_id': self.id,
+            'candidate_term': self.term_number,
+            'candidate_loglen': len(self.log),
+            'candidate_logterm': last_term
         }
         
         # Send async vote requests to all peers
