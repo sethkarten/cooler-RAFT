@@ -89,8 +89,8 @@ class RaftNode:
         for i in range(len(self.peers)):
             if i == self.id:
                 continue
-            # TODO
-            await self.send_vote_request(i, msg)
+
+            await self.send_vote_request(i, msg) # TODO
     
     def replicate_log(self):
         raise NotImplementedError
@@ -134,8 +134,7 @@ class RaftNode:
             'vote': vote
         }
 
-        # TODO
-        await self.send_vote_response(args['candidate_id'], msg)
+        await self.send_vote_response(args['candidate_id'], msg) # TODO
     
     def vote_response(self):
         raise NotImplementedError
