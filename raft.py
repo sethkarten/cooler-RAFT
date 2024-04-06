@@ -24,6 +24,14 @@ class RaftNode:
         self.peers = peers # NOTE: logic in election() assumes self.peers includes self
         # sent_length: Vec<u64>, // []
         # acked_length: Vec<u64>, // []
+    
+    def get_last_log_term(self):
+        """
+        Returns the last term in log. 
+        """
+        if self.log:
+            return self.log[-1].term
+        return 0
 
     async def logic_loop(self):
         input = await self.receive_event()
@@ -66,10 +74,8 @@ class RaftNode:
 
         self.term_number += 1
 
-        # Determine if candidate's last log entry is at least as up-to-date as node's log
-        last_term = 0
-        if len(self.log) > 0:
-            last_term = self.log[-1].term
+        # Determine if candidate's last log entry is at least as up-to-date as self log
+        last_term = self.get_last_log_term()
         
         # Start vote request message 
         msg = {
@@ -83,13 +89,53 @@ class RaftNode:
         for i in range(len(self.peers)):
             if i == self.id:
                 continue
+            # TODO
             await self.send_vote_request(i, msg)
     
     def replicate_log(self):
         raise NotImplementedError
     
-    def vote_request(self):
-        raise NotImplementedError
+    async def vote_request(self, args):
+        """
+        When Node receives a voting request from a Requester:
+            (1) If term of Requester > Node, update term and change to Follower. 
+            (2) Determine whether or not to vote by:
+                (a) If Requester term < Node, vote=False.
+                (b) If Requester log is less updated than Node, vote=False.
+                (c) If Node already voted in this term, vote=False. 
+                (d) Otherwise, vote=True. 
+        """
+        # Check if the request's term is greater than the current term
+        if args['candidate_term'] > self.term_number:
+            self.role = 'follower'
+            self.term_number = args['candidate_term']
+            self.voted_id = None
+        
+        # Determine if requester's log is up-to-date vs self log (using log terms or lengths)
+        last_term = self.get_last_log_term()
+        if args['candidate_logterm'] > last_term:
+            checklog = True
+        elif args['candidate_logterm'] == last_term and args['candidate_loglen'] >= len(self.log):
+            checklog = True
+        else:
+            checklog = False
+        
+        # Decide whether to vote for requester
+        vote = False      
+        if (args['candidate_term'] == self.term_number) and checklog and \
+            (self.voted_id is None or self.voted_id == args['candidate_id']):
+            self.voted_id = args['candidate_id']
+            vote = True
+        
+        # Send vote response message
+        msg = {
+            'voter_id': self.id,
+            'voter_term': self.term_number,
+            'vote': vote
+        }
+
+        # TODO
+        await self.send_vote_response(args['candidate_id'], msg)
     
     def vote_response(self):
         raise NotImplementedError
