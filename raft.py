@@ -1,6 +1,7 @@
 
 from enum import Enum
 import asyncio
+from utils import get_last_log_term
 
 class Event(Enum):
     ElectionTimeout = 0
@@ -24,14 +25,6 @@ class RaftNode:
         self.peers = peers # NOTE: logic in election() assumes self.peers includes self
         # sent_length: Vec<u64>, // []
         # acked_length: Vec<u64>, // []
-    
-    def get_last_log_term(self):
-        """
-        Returns the last term in log. 
-        """
-        if self.log:
-            return self.log[-1].term
-        return 0
 
     async def logic_loop(self):
         input = await self.receive_event()
@@ -75,7 +68,7 @@ class RaftNode:
         self.term_number += 1
 
         # Determine if candidate's last log entry is at least as up-to-date as self log
-        last_term = self.get_last_log_term()
+        last_term = get_last_log_term(self.log)
         
         # Start vote request message 
         msg = {
@@ -112,7 +105,7 @@ class RaftNode:
             self.voted_id = None
         
         # Determine if requester's log is up-to-date vs self log (using log terms or lengths)
-        last_term = self.get_last_log_term()
+        last_term = get_last_log_term(self.log)
         if args['candidate_logterm'] > last_term:
             checklog = True
         elif args['candidate_logterm'] == last_term and args['candidate_loglen'] >= len(self.log):
