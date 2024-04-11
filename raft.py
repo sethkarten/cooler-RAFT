@@ -85,8 +85,26 @@ class RaftNode:
 
             await self.send_vote_request(i, msg) # TODO
     
+    def replicate(self):
+        if self.role == 'leader': 
+            for peer_id in self.peers:
+                if peer_id == self.id: 
+                    continue
+                self.replicate(self, self.id, peer_id)
+        return
+    
     def replicate_log(self):
-        raise NotImplementedError
+        """
+        When ReplicationTimeout, Leader synchronizes log with Followers. 
+        """
+        if self.role != 'leader': 
+            return
+
+        for peer_id in self.peers:
+            if peer_id == self.id: 
+                continue
+            self.replicate(peer_id)
+
     
     async def vote_request(self, args):
         """
@@ -173,7 +191,7 @@ class RaftNode:
             self.ack_length[self.id] = len(self.log)
             self.replicate_log()
         # else:
-            # TODO -- implement + call self.runner.forward_broadcast(log_entry)
+            # TODO -- implement + call self.runner.forward_broadcast(log_entry) to send to leader if leader != null, otherwise wait 
     
     async def receive_event(self):
         raise NotImplementedError
