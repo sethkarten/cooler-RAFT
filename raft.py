@@ -1,7 +1,7 @@
 
 from enum import Enum
 import asyncio
-from utils import get_last_log_term
+from utils import get_last_log_term, get_majority
 
 class Event(Enum):
     ElectionTimeout = 0
@@ -22,9 +22,9 @@ class RaftNode:
         self.votes_total = votes_total
         self.log = log
         self.commit_length = commit_length
-        self.peers = peers # NOTE: logic in election() assumes self.peers includes self
-        # sent_length: Vec<u64>, // []
-        # acked_length: Vec<u64>, // []
+        self.peers = peers # NOTE: logic in election() assumes self.peers includes self, also assumed ordered where idx == id
+        self.sent_length = {peer_id: 0 for peer_id in self.peers}
+        self.ack_length = {peer_id: 0 for peer_id in self.peers}
 
     async def logic_loop(self):
         input = await self.receive_event()
@@ -129,8 +129,28 @@ class RaftNode:
 
         await self.send_vote_response(args['candidate_id'], msg) # TODO
     
-    def vote_response(self):
-        raise NotImplementedError
+    def vote_response(self, args):
+        """
+        Updates Node as it receives a response to its vote request. 
+            (1) If Node has a majority of votes via get_majority(peers), then Node ==> Leader. 
+            (2) Otherwise, stay Candidate. 
+        """
+        if (self.role == 'candidate') and (args['voter_term'] == self.term_number) and (args['vote']):
+            self.votes_received.add(args['voter_id'])
+
+            if len(self.votes_received) >= get_majority(self.peers): 
+                self.role = 'leader'
+                self.leader = self.id
+                for peer_id in self.peers:
+                    if peer_id == self.id: continue
+                    self.sent_length[peer_id] = len(self.log)
+                    self.ack_length[peer_id] = 0
+                self.replicate_log()
+        elif args['voter_term'] > self.term_number:
+            self.role = 'follower'
+            self.term_number = args['voter_term']
+            self.voted_id = None
+            # TODO -- implement + call self.runner.election_timer_reset() 
     
     def log_request(self):
         raise NotImplementedError

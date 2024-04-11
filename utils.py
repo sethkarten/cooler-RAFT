@@ -5,3 +5,9 @@ def get_last_log_term(log):
     if log:
         return log[-1].term
     return 0
+
+def get_majority(peers):
+    """
+    Returns the number of nodes required for a majority vote. 
+    """
+    return ((len(peers) + 1) + 1) / 2
