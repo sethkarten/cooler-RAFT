@@ -23,7 +23,7 @@ class RaftNode:
         self.log = log
         self.commit_length = commit_length
         self.peers = peers # NOTE: logic in election() assumes self.peers includes self, also assumed ordered where idx == id
-        self.sent_length = {peer_id: 0 for peer_id in self.peers}
+        self.sent_length = {peer_id: 0 for peer_id in self.peers} # Denotes len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
 
     async def logic_loop(self):
@@ -95,7 +95,22 @@ class RaftNode:
         for peer_id in self.peers:
             if peer_id == self.id: 
                 continue
-            replicate(self, self.id, peer_id)
+            
+            # Leader sends log entries after sent_length[follower]
+            # TODO: if sync fails, leader decreases sentLength[follower] by 1 and tries again
+            prefix = self.sent_length[peer_id]
+            suffix = self.log[prefix:]
+            p_term = self.log[prefix-1]['term'] if prefix > 0 else 0
+            msg = {
+                'leader': self.id,
+                'term': self.term_number,
+                'prefix': prefix,
+                'suffix': suffix,
+                'prefix_term': p_term,
+                'commit': self.commit_length
+            }
+
+            # TODO: send_log_request(follower_id, msg)
 
     
     async def vote_request(self, args):
