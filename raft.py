@@ -86,12 +86,7 @@ class RaftNode:
             await self.send_vote_request(i, msg) # TODO
     
     def replicate(self):
-        if self.role == 'leader': 
-            for peer_id in self.peers:
-                if peer_id == self.id: 
-                    continue
-                self.replicate(self, self.id, peer_id)
-        return
+        raise NotImplementedError
     
     def replicate_log(self):
         """
