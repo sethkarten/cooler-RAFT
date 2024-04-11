@@ -1,7 +1,7 @@
 
 from enum import Enum
 import asyncio
-from utils import get_last_log_term, get_majority
+from utils import get_last_log_term, get_majority, replicate
 
 class Event(Enum):
     ElectionTimeout = 0
@@ -85,9 +85,6 @@ class RaftNode:
 
             await self.send_vote_request(i, msg) # TODO
     
-    def replicate(self):
-        raise NotImplementedError
-    
     def replicate_log(self):
         """
         When ReplicationTimeout, Leader synchronizes log with Followers. 
@@ -98,7 +95,7 @@ class RaftNode:
         for peer_id in self.peers:
             if peer_id == self.id: 
                 continue
-            self.replicate(peer_id)
+            self.replicate(self.id, peer_id)
 
     
     async def vote_request(self, args):

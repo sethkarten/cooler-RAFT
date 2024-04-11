@@ -11,3 +11,7 @@ def get_majority(peers):
     Returns the number of nodes required for a majority vote. 
     """
     return ((len(peers) + 1) + 1) / 2
+
+    
+def replicate(leader_id, peer_id):
+    raise NotImplementedError
