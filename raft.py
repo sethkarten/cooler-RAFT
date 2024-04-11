@@ -158,8 +158,22 @@ class RaftNode:
     def log_response(self):
         raise NotImplementedError
     
-    def broadcast(self):
-        raise NotImplementedError
+    def broadcast(self, log_entry):
+        """
+        When a broadcast is triggered,
+            (1) Leader appends broadcast message to log and sends to Followers. 
+            (2) Otherwise, send message to Leader. 
+        """
+        if self.role == 'leader':
+            log_entry = {
+                'term': self.term, 
+                'entry': log_entry
+            }
+            self.log.append(log_entry)
+            self.ack_length[self.id] = len(self.log)
+            self.replicate_log()
+        # else:
+            # TODO -- implement + call self.runner.forward_broadcast(log_entry)
     
     async def receive_event(self):
         raise NotImplementedError
