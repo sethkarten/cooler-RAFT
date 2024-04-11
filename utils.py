@@ -13,5 +13,5 @@ def get_majority(peers):
     return ((len(peers) + 1) + 1) / 2
 
     
-def replicate(leader_id, peer_id):
+def replicate(node_state, leader_id, peer_id):
     raise NotImplementedError

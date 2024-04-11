@@ -95,7 +95,7 @@ class RaftNode:
         for peer_id in self.peers:
             if peer_id == self.id: 
                 continue
-            self.replicate(self.id, peer_id)
+            replicate(self, self.id, peer_id)
 
     
     async def vote_request(self, args):
