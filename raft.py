@@ -21,7 +21,7 @@ class RaftNode:
         self.leader = leader
         self.votes_total = votes_total
         self.log = log
-        self.commit_length = commit_length
+        self.commit_length = 0 # How many log entries have been committed
         self.peers = peers # NOTE: logic in election() assumes self.peers includes self, also assumed ordered where idx == id
         self.sent_length = {peer_id: 0 for peer_id in self.peers} # Denotes len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
@@ -71,9 +71,9 @@ class RaftNode:
         last_term = get_last_log_term(self.log)
         
         # Start vote request message 
-        msg = {
+        resp = {
             'candidate_id': self.id,
-            'candidate_term': self.term_number,
+            'term': self.term_number,
             'candidate_loglen': len(self.log),
             'candidate_logterm': last_term
         }
@@ -83,7 +83,7 @@ class RaftNode:
             if i == self.id:
                 continue
 
-            await self.send_vote_request(i, msg) # TODO
+            await self.send_vote_request(i, resp) # TODO
     
     def replicate_log(self):
         """
@@ -101,7 +101,7 @@ class RaftNode:
             prefix = self.sent_length[peer_id]
             suffix = self.log[prefix:]
             p_term = self.log[prefix-1]['term'] if prefix > 0 else 0
-            msg = {
+            resp = {
                 'leader': self.id,
                 'term': self.term_number,
                 'prefix': prefix,
@@ -110,7 +110,7 @@ class RaftNode:
                 'commit': self.commit_length
             }
 
-            # TODO: send_log_request(follower_id, msg)
+            # TODO: send_log_request(follower_id, resp)
 
     
     async def vote_request(self, args):
@@ -124,9 +124,9 @@ class RaftNode:
                 (d) Otherwise, vote=True. 
         """
         # Check if the request's term is greater than the current term
-        if args['candidate_term'] > self.term_number:
+        if args['term'] > self.term_number:
             self.role = 'follower'
-            self.term_number = args['candidate_term']
+            self.term_number = args['term']
             self.voted_id = None
         
         # Determine if requester's log is up-to-date vs self log (using log terms or lengths)
@@ -140,19 +140,19 @@ class RaftNode:
         
         # Decide whether to vote for requester
         vote = False      
-        if (args['candidate_term'] == self.term_number) and checklog and \
+        if (args['term'] == self.term_number) and checklog and \
             (self.voted_id is None or self.voted_id == args['candidate_id']):
             self.voted_id = args['candidate_id']
             vote = True
         
         # Send vote response message
-        msg = {
+        resp = {
             'voter_id': self.id,
-            'voter_term': self.term_number,
+            'term': self.term_number,
             'vote': vote
         }
 
-        await self.send_vote_response(args['candidate_id'], msg) # TODO
+        await self.send_vote_response(args['candidate_id'], resp) # TODO
     
     def vote_response(self, args):
         """
@@ -171,14 +171,55 @@ class RaftNode:
                     self.sent_length[peer_id] = len(self.log)
                     self.ack_length[peer_id] = 0
                 self.replicate_log()
-        elif args['voter_term'] > self.term_number:
+        elif args['term'] > self.term_number:
             self.role = 'follower'
-            self.term_number = args['voter_term']
+            self.term_number = args['term']
             self.voted_id = None
             # TODO -- implement + call self.runner.election_timer_reset() 
     
-    def log_request(self):
-        raise NotImplementedError
+    def log_request(self, args):
+        """
+        When Follower receives a synchronization msg from Leader, it:
+            (1) Checks if log is consistent with log that Leader thinks it has. If not, reject.
+            (2) Otherwise, Follower appends suffix log entries to its log. 
+            (3) If Leader committed log entries, commit same ones. 
+        """
+
+        # If term from log request > self term, update and reset. 
+        if args['term'] > self.term_number:
+            self.term_number = args['term']
+            self.voted_id = None
+            # TODO -- implement + call self.runner.election_timer_reset() -- bc node is out of date.
+        
+        # If term from log request matches, acknowledge current leader + become follower. 
+        elif args['term'] == self.term_number:
+            self.role = 'follower'
+            self.leader = args['leader']
+            # TODO -- implement + call self.runner.election_timer_reset()
+        
+        # Check if logs are consistent. 
+        checklog = False
+        if len(self.log) >= args['prefix']:
+            if (args['prefix'] == 0) or (self.log[args['prefix']-1]['term'] == args['prefix']):
+                checklog  = True
+
+        success = True
+        # If logs are consistent, update self log to match leader and acknowledge. 
+        if checklog and (args['term'] == self.term_number):
+            self.log = self.log[:args['prefix_len']] + args['suffix']
+            if self.commit_length < args['commit_length']:
+                self.commit_length = min(args['commit_length'], len(self.log))
+            ack = args['prefix'] + len(args['suffix'])
+            success = True
+
+        resp = {
+            'follower': self.id,
+            'term': self.term_number,
+            'ack': ack,
+            'success': success
+        }
+
+        # TODO: implement self.send_log_response(args['leader'], resp) 
     
     def log_response(self):
         raise NotImplementedError
