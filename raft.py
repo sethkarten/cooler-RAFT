@@ -1,7 +1,7 @@
 
 from enum import Enum
 import asyncio
-from utils import get_last_log_term, get_majority, replicate
+from utils import get_last_log_term, get_majority
 
 class Event(Enum):
     ElectionTimeout = 0
@@ -13,17 +13,17 @@ class Event(Enum):
     Broadcast = 6
 
 class RaftNode:
-    def __init__(self, id, term_number, voted_id, role, leader, votes_total, log, commit_length, peers):
+    def __init__(self, id, peers, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.id = id
+        self.peers = peers # Includes self.id and is ordered by ID
         self.term_number = term_number
         self.voted_id = voted_id
         self.role = role
         self.leader = leader
         self.votes_total = votes_total
-        self.log = log
-        self.commit_length = 0 # How many log entries have been committed
-        self.peers = peers # NOTE: logic in election() assumes self.peers includes self, also assumed ordered where idx == id
-        self.sent_length = {peer_id: 0 for peer_id in self.peers} # Denotes len of log that leader believes each follower has
+        self.log = log if log is not None else []
+        self.commit_length = commit_length # How many log entries have been committed
+        self.sent_length = {peer_id: 0 for peer_id in self.peers} # Len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
 
     async def logic_loop(self):
@@ -79,11 +79,11 @@ class RaftNode:
         }
         
         # Send async vote requests to all peers
-        for i in range(len(self.peers)):
-            if i == self.id:
+        for peer_id in self.peers:
+            if peer_id == self.id:
                 continue
 
-            await self.send_vote_request(i, resp) # TODO
+            await self.send_vote_request(peer_id, resp) # TODO
     
     def replicate_log(self):
         """
