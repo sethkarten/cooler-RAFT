@@ -1,6 +1,7 @@
 import unittest
 from raft import RaftNode
 
+# NOTE: these don't run yet 
 class TestRaftNode(unittest.TestCase):
     def test_leader_election(self):
         nodes = [
