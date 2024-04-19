@@ -1,6 +1,6 @@
 import unittest
 from raft import RaftNode
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, AsyncMock
 
 class TestRaftNode(unittest.IsolatedAsyncioTestCase):
     async def test_leader_election(self):
@@ -12,9 +12,8 @@ class TestRaftNode(unittest.IsolatedAsyncioTestCase):
             RaftNode(id=3, peers=node_info.keys(), node_info=node_info)
         ]
 
-        with patch('raft.NetworkManager.send_vote_request', new_callable=MagicMock):
-            for node in nodes:
-                await node.election() # Start election manually for test
+        with patch('raft.NetworkManager.send_vote_request', new_callable=AsyncMock):
+            await nodes[0].election() # Start election manually for test
 
             leaders = [node for node in nodes if node.role == 'leader']
             leader = leaders[0]

@@ -62,7 +62,7 @@ class RaftNode:
             return
         
         self.role = 'candidate'
-        
+
         self.voted_id = self.id
         self.votes_received = set()
         self.votes_received.add(self.id)
@@ -79,7 +79,7 @@ class RaftNode:
             'candidate_loglen': len(self.log),
             'candidate_logterm': last_term
         }
-        
+
         # Send async vote requests to all peers
         for peer_id in self.peers:
             if peer_id == self.id:
