@@ -1,7 +1,8 @@
-To-Do:
-- reset_election_timer() 
+NOT IMPLEMENTED:
+- reset_election_timer() / ElectionTimeout
+- ReplicationTimeout
 
-Info For Seth:
+NOTE TO SETH:
 - Most RAFT functions are implemented (but not tested).
 - Almost every function calls self.network_manager.send_message(peer_id, resp).
     - Inside of resp, there is info that needs to be sent to other nodes, and 'type' indicating what kind of message is being sent. 
