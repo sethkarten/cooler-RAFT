@@ -2,7 +2,6 @@
 from enum import Enum
 import asyncio
 from utils import get_last_log_term, get_majority, count_acks
-import json
 from network import NetworkManager
 
 class Event(Enum):
@@ -15,9 +14,9 @@ class Event(Enum):
     Broadcast = 6
 
 class RaftNode:
-    def __init__(self, id, peers, node_info, port, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
+    def __init__(self, id, node_info, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.id = id
-        self.peers = peers # Includes self.id and is ordered by ID
+        self.peers = node_info.keys() # Includes self.id and is ordered by ID
         self.term_number = term_number
         self.voted_id = voted_id
         self.role = role
@@ -31,12 +30,12 @@ class RaftNode:
         # NETWORK CONFIG
         self.network_manager = NetworkManager(node_info)
         self.event_queue = asyncio.Queue() 
-        self.port = port
-        asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message))
+        self.port = node_info[self.id][1]
+        asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
 
     async def handle_network_message(self, message):
-            event_type = self.map_message_to_event(message)
-            await self.event_queue.put(event_type)
+        event_type = self.map_message_to_event(message)
+        await self.event_queue.put(event_type)
     
     def map_message_to_event(self, message):
         if message['type'] == 'vote_request':
@@ -110,7 +109,7 @@ class RaftNode:
         for peer_id in self.peers:
             if peer_id == self.id:
                 continue
-            await self.network_manager.send_message(peer_id, resp) 
+            await self.network_manager.send_message(peer_id, resp)
     
     async def replicate(self, peer_id):
         # Leader sends log entries after sent_length[follower]
