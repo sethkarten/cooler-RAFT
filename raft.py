@@ -13,6 +13,20 @@ class Event(Enum):
     LogResponse = 5
     Broadcast = 6
 
+# Is there a better way to do this? lol
+def map_message_to_event(message):
+    if message['type'] == 'vote_request':
+        return Event.VoteRequest
+    elif message['type'] == 'log_response':
+        return Event.LogResponse
+    elif message['type'] == 'log_request':
+        return Event.LogRequest
+    elif message['type'] == 'vote_response':
+        return Event.VoteResponse
+    elif message['type'] == 'broadcast':
+        return Event.Broadcast
+    return None
+
 class RaftNode:
     def __init__(self, id, node_info, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.id = id
@@ -34,21 +48,8 @@ class RaftNode:
         asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
 
     async def handle_network_message(self, message):
-        event_type = self.map_message_to_event(message)
+        event_type = map_message_to_event(message)
         await self.event_queue.put(event_type)
-    
-    def map_message_to_event(self, message):
-        if message['type'] == 'vote_request':
-            return Event.VoteRequest
-        elif message['type'] == 'log_response':
-            return Event.LogResponse
-        elif message['type'] == 'log_request':
-            return Event.LogRequest
-        elif message['type'] == 'vote_response':
-            return Event.VoteResponse
-        elif message['type'] == 'broadcast':
-            return Event.Broadcast
-        return None
 
     async def logic_loop(self):
         while True:
