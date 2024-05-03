@@ -15,3 +15,7 @@ NOTE TO SETH:
     - self.network_manager.send_message
         - Needs to open connection to other node + send message in 'resp'
     - self.reset_election_timer() -- would also use asyncio rn, so I waited to implement? 
+
+- Need to test I/O working + calling events properly
+    - Sending a toy message of some kind (like a heartbeat)
+    - Starting servers
