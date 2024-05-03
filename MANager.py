@@ -1,15 +1,15 @@
 import unittest
 from raft import RaftNode
-from network import NetworkManager
+from network import NetworkMANager
 from unittest.mock import patch, AsyncMock
 
-class TestRaftNode(unittest.IsolatedAsyncioTestCase):
+class RaftMANager(unittest.IsolatedAsyncioTestCase):
     async def test_leader_election(self):
         node_info = {1: ('127.0.0.1', 8001), 2: ('127.0.0.1', 8002), 3: ('127.0.0.1', 8003)}
         nodes = [RaftNode(id=i, node_info=node_info) for i in node_info.keys()]
         print(nodes[1].network_manager.node_info)
 
-        with patch.object(NetworkManager, 'send_message', new_callable=AsyncMock) as mock_send:
+        with patch.object(NetworkMANager, 'send_message', new_callable=AsyncMock) as mock_send:
             await nodes[0].election() # Start election manually for test
             
             # TEST IF NODE STARTS ELECTION + SENDS VOTE_REQUESTS

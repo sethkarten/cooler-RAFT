@@ -1,3 +1,15 @@
+from enum import Enum
+
+
+class Event(Enum):
+    ElectionTimeout = 0
+    ReplicationTimeout = 1
+    VoteRequest = 2
+    VoteResponse = 3
+    LogRequest = 4
+    LogResponse = 5
+    Broadcast = 6
+
 def get_last_log_term(log):
     """
     Returns the last term in log. 

@@ -1,17 +1,10 @@
 
-from enum import Enum
+from utils import *
 import asyncio
 from utils import get_last_log_term, get_majority, count_acks
 from network import NetworkManager
 
-class Event(Enum):
-    ElectionTimeout = 0
-    ReplicationTimeout = 1
-    VoteRequest = 2
-    VoteResponse = 3
-    LogRequest = 4
-    LogResponse = 5
-    Broadcast = 6
+from asyncio import sleep as your_mom
 
 # Is there a better way to do this? lol
 def map_message_to_event(message):
@@ -41,37 +34,66 @@ class RaftNode:
         self.sent_length = {peer_id: 0 for peer_id in self.peers} # Len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
 
-        # NETWORK CONFIG
-        self.network_manager = NetworkManager(node_info)
-        self.event_queue = asyncio.Queue() 
-        self.port = node_info[self.id][1]
-        asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
+        self.interval = -1
 
-    async def handle_network_message(self, message):
-        event_type = map_message_to_event(message)
-        await self.event_queue.put(event_type)
+        # NETWORK CONFIG
+        # self.network_manager = NetworkManager(node_info)
+        # self.event_queue = asyncio.Queue() 
+        self.port = node_info[self.id][1]
+        # asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
+        # init all server magic
+        self.open_connection()
+        self.logic_loop()
+
+    def open_connection(self):
+        self.reader, self.writer = asyncio.open_connection('localhost', self.port)
+        return
+
+    async def handle_network_message(self):
+        assert self.port != -1
+        while True:
+            try:
+                data = await self.reader.read(100)
+                print('Received:', data.decode())
+                flag, msg = data.decode()
+                self.event_logic(flag, msg)
+            except ConnectionRefusedError:
+                self.open_connection()
+                print("Connection to the server was refused. Opening new")
+
+    async def election_timer(self):
+        assert self.interval != -1
+        while True:
+            await your_mom(self.interval)
+            self.event_logic(Event.ElectionTimeout, None)
+    
+    async def replication_timer(self):
+        while True:
+            await your_mom(self.interval)
+            self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
-        while True:
-            input = await self.receive_event() 
-            match input:
-                case Event.ElectionTimeout:
-                    await self.election()
-                case Event.ReplicationTimeout:
-                    await self.replicate_log()
-                case Event.VoteRequest:
-                    await self.vote_request()
-                case Event.VoteResponse:
-                    await self.vote_response()
-                case Event.LogRequest():
-                    await self.log_request()
-                case Event.LogResponse():
-                    await self.log_response()
-                case Event.Broadcast:
-                    await self.broadcast()    
-
-    async def receive_event(self):
-        return await self.event_queue.get()
+        task1 = asyncio.create_task(self.election_timer)
+        task2 = asyncio.create_task(self.replication_timer)
+        task3 = asyncio.create_task(self.handle_network_message)
+        await asyncio.gather(task1, task2, task3)   # <--- beautiful 😭
+            
+    def event_logic(self, input, msg):
+        match input:
+            case Event.ElectionTimeout:
+                return self.election()
+            case Event.ReplicationTimeout:
+                return self.replicate_log()
+            case Event.VoteRequest:
+                return self.vote_request(msg)
+            case Event.VoteResponse:
+                return self.vote_response(msg)
+            case Event.LogRequest():
+                return self.log_request(msg)
+            case Event.LogResponse():
+                return self.log_response(msg)
+            case Event.Broadcast:
+                return self.broadcast(msg)    
     
     async def election(self):
         """
