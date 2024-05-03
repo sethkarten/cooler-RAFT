@@ -55,8 +55,8 @@ class RaftNode:
             try:
                 data = await self.reader.read(100)
                 print('Received:', data.decode())
-                flag, msg = data.decode()
-                self.event_logic(flag, msg)
+                response_dict = data.decode()
+                self.event_logic(response_dict['flag'], response_dict)
             except ConnectionRefusedError:
                 self.open_connection()
                 print("Connection to the server was refused. Opening new")
