@@ -5,6 +5,7 @@ from network import NetworkMANager
 from unittest.mock import patch, AsyncMock
 
 class RaftMANager(unittest.IsolatedAsyncioTestCase):
+
     async def test_leader_election(self):
         node_info = {1: ('127.0.0.1', 8001), 2: ('127.0.0.1', 8002), 3: ('127.0.0.1', 8003)}
         nodes = [RaftNode(id=i, node_info=node_info) for i in node_info.keys()]
