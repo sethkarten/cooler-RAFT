@@ -6,20 +6,6 @@ from network import NetworkManager
 
 from asyncio import sleep as your_mom
 
-# Is there a better way to do this? lol
-def map_message_to_event(message):
-    if message['type'] == 'vote_request':
-        return Event.VoteRequest
-    elif message['type'] == 'log_response':
-        return Event.LogResponse
-    elif message['type'] == 'log_request':
-        return Event.LogRequest
-    elif message['type'] == 'vote_response':
-        return Event.VoteResponse
-    elif message['type'] == 'broadcast':
-        return Event.Broadcast
-    return None
-
 class RaftNode:
     def __init__(self, id, node_info, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.id = id
@@ -34,7 +20,7 @@ class RaftNode:
         self.sent_length = {peer_id: 0 for peer_id in self.peers} # Len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
 
-        self.interval = -1
+        self.interval = 10
 
         # NETWORK CONFIG
         # self.network_manager = NetworkManager(node_info)
@@ -49,7 +35,7 @@ class RaftNode:
         self.reader, self.writer = asyncio.open_connection('localhost', self.port)
         return
 
-    async def handle_network_message(self):
+    async def receive_network_message(self):
         assert self.port != -1
         while True:
             try:
@@ -60,6 +46,15 @@ class RaftNode:
             except ConnectionRefusedError:
                 self.open_connection()
                 print("Connection to the server was refused. Opening new")
+    
+    async def send_network_message(self, msg):
+        assert self.port != -1
+        try:
+            self.writer.write(msg)
+            await self.writer.drain()
+        except ConnectionRefusedError:
+            self.open_connection()
+            print("Connection to the server was refused. Opening new")
 
     async def election_timer(self):
         assert self.interval != -1
@@ -69,15 +64,29 @@ class RaftNode:
     
     async def replication_timer(self):
         while True:
-            await your_mom(self.interval)
+            await your_mom(self.interval+5)
             self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
-        task1 = asyncio.create_task(self.election_timer)
-        task2 = asyncio.create_task(self.replication_timer)
-        task3 = asyncio.create_task(self.handle_network_message)
-        await asyncio.gather(task1, task2, task3)   # <--- beautiful 😭
-            
+        server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', 8081+self.id)
+
+        addr = server.sockets[0].getsockname()
+        print(f'Serving on {addr}')
+
+        async with server:
+            task1 = asyncio.create_task(self.election_timer)
+            task2 = asyncio.create_task(self.replication_timer)
+            task3 = asyncio.create_task(server.serve_forever())
+            await asyncio.gather(task1, task2, task3)   # <--- beautiful 😭
+
+    def test_msg(self, msg):
+        msg_data = {
+            'candidate_id': self.id,
+            'destination': 1-self.id,   # dual
+            'type': f'Hiiiii node {1-self.id}. It me, node {self.id}'
+        }
+        self.send_network_message(msg_data)
+
     def event_logic(self, input, msg):
         match input:
             case Event.ElectionTimeout:
@@ -93,7 +102,9 @@ class RaftNode:
             case Event.LogResponse():
                 return self.log_response(msg)
             case Event.Broadcast:
-                return self.broadcast(msg)    
+                return self.broadcast(msg)   
+            case Event.ElectionTimeoutTest:
+                return self.test_msg(msg) 
     
     async def election(self):
         """

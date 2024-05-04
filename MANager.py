@@ -1,4 +1,5 @@
 import unittest
+from mainager import PipeMANager
 from raft import RaftNode
 from network import NetworkMANager
 from unittest.mock import patch, AsyncMock
@@ -28,6 +29,11 @@ class RaftMANager(unittest.IsolatedAsyncioTestCase):
             # TEST IF NODE 0 IS LEADER FOR ALL NODES
             for node in nodes:
                 self.assertEqual(node.leader, nodes[0].id, "All nodes should have same leader")
+
+
+    async def test_comms(self):
+        pied_piper = PipeMANager()
+        
 
 if __name__ == '__main__':
     unittest.main()

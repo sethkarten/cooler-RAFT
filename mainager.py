@@ -13,32 +13,31 @@ class PipeMANager():
         await writer.drain()
 
     def open_connection(self, port):
-        reader, writer = asyncio.open_connection('localhost', port)
+        reader, writer = asyncio.open_connection('127.0.0.1', port)
         return reader, writer
 
-    async def handle_network_message(self):
-        while True:
-            try:
-                data = await self.reader.read(100)
-                print('Received:', data.decode())
-                response_dict = data.decode()
-                self.pipe_piper(response_dict['id'], response_dict)
-            except ConnectionRefusedError:
-                self.open_connection()
-                print("Connection to the server was refused. Opening new")
+    async def handle_network_message(self, reader, writer):
+        data = await reader.read(100)
+        print('Received:', data.decode())
+        response_dict = data.decode()
+        print(response_dict)
+        # pipe to other node
 
 
     async def pipe_layer(self):
+        server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', 8080)
         # bunch of ports
         for i in range(self.num_nodes):
-            self.node_info.append(self.open_connection(8000+i))
+            self.node_info.append(self.open_connection(8081+i))
             self.tasks.append(asyncio.create_task(self.handle_network_message))
         await asyncio.gather(self.tasks)
         # wait for msgs from all connections
         # then callback received: -> pipe ;)
         return
 
+async def main():
+    elizabeth = PipeMANager()
+    await elizabeth.pipe_layer()
 
 if __name__ == '__main__':
-    elizabeth = PipeMANager()
-    elizabeth.pipe_layer()
+    asyncio.get_event_loop().run_until_complete(main())

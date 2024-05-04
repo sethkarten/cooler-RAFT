@@ -9,6 +9,8 @@ class Event(Enum):
     LogRequest = 4
     LogResponse = 5
     Broadcast = 6
+    ElectionTimeoutTest = 0
+
 
 def get_last_log_term(log):
     """
