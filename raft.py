@@ -1,10 +1,9 @@
 
+from argparse import ArgumentParser
+import json
 from utils import *
 import asyncio
 from utils import get_last_log_term, get_majority, count_acks
-from network import NetworkManager
-
-from asyncio import sleep as your_mom
 
 class RaftNode:
     def __init__(self, id, node_info, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
@@ -25,69 +24,88 @@ class RaftNode:
         # NETWORK CONFIG
         # self.network_manager = NetworkManager(node_info)
         # self.event_queue = asyncio.Queue() 
-        self.port = node_info[self.id][1]
+        self.port = node_info['port']
         # asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
         # init all server magic
-        self.open_connection()
-        self.logic_loop()
+        self.start_raft_node()
 
-    def open_connection(self):
-        self.reader, self.writer = asyncio.open_connection('localhost', self.port)
-        return
+    def start_raft_node(self):
+        asyncio.get_event_loop().run_until_complete(self.logic_loop())
 
-    async def receive_network_message(self):
+    async def open_connection(self, port):
+        # Wait for 30 seconds, then raise TimeoutError
+        for i in range(10):
+            try:
+                self.reader, self.writer = await asyncio.open_connection('127.0.0.1', port)
+                return
+            except (ConnectionRefusedError, TypeError):
+                await asyncio.sleep(1)
+
+    async def receive_network_message(self, reader, writer):
+        print('RECEIVING MSG')
         assert self.port != -1
         while True:
             try:
-                data = await self.reader.read(100)
+                data = await reader.read(100)
                 print('Received:', data.decode())
-                response_dict = data.decode()
-                self.event_logic(response_dict['flag'], response_dict)
+                response_dict = json.loads(data.decode())
+                await self.event_logic(Event(response_dict['flag']), response_dict)
             except ConnectionRefusedError:
                 self.open_connection()
                 print("Connection to the server was refused. Opening new")
     
     async def send_network_message(self, msg):
+        print('begin sending message', msg)
         assert self.port != -1
         try:
-            self.writer.write(msg)
+            await self.open_connection(8080)
+            serialized_msg = json.dumps(msg).encode('utf-8')
+            self.writer.write(serialized_msg)
             await self.writer.drain()
         except ConnectionRefusedError:
-            self.open_connection()
             print("Connection to the server was refused. Opening new")
+            await self.open_connection(self.port)
+        print('finished sending message')
 
     async def election_timer(self):
         assert self.interval != -1
         while True:
-            await your_mom(self.interval)
-            self.event_logic(Event.ElectionTimeout, None)
+            await asyncio.sleep(self.interval)
+            await self.event_logic(Event.ElectionTimeoutTest, None)
+            # await self.event_logic(Event.ElectionTimeout, None)
     
     async def replication_timer(self):
         while True:
-            await your_mom(self.interval+5)
-            self.event_logic(Event.ReplicationTimeout, None)
+            await asyncio.sleep(self.interval+5)
+            await self.event_logic(Event.ElectionTimeoutTest, None)
+            # await self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
         server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', 8081+self.id)
-
+        
         addr = server.sockets[0].getsockname()
         print(f'Serving on {addr}')
 
         async with server:
-            task1 = asyncio.create_task(self.election_timer)
-            task2 = asyncio.create_task(self.replication_timer)
+            task1 = asyncio.create_task(self.election_timer())
+            task2 = asyncio.create_task(self.replication_timer())
             task3 = asyncio.create_task(server.serve_forever())
             await asyncio.gather(task1, task2, task3)   # <--- beautiful 😭
 
-    def test_msg(self, msg):
+    async def test_msg(self, msg):
         msg_data = {
             'candidate_id': self.id,
             'destination': 1-self.id,   # dual
-            'type': f'Hiiiii node {1-self.id}. It me, node {self.id}'
+            'type': f'Hiiiii node {1-self.id}. It me, node {self.id}',
+            'flag': Event.Debug
         }
-        self.send_network_message(msg_data)
+        await self.send_network_message(msg_data)
 
-    def event_logic(self, input, msg):
+    def print_msg(self, msg):
+        print('MSG RECEIVED', msg)
+
+    async def event_logic(self, input, msg):
+        print('event enum received', input)
         match input:
             case Event.ElectionTimeout:
                 return self.election()
@@ -97,14 +115,19 @@ class RaftNode:
                 return self.vote_request(msg)
             case Event.VoteResponse:
                 return self.vote_response(msg)
-            case Event.LogRequest():
+            case Event.LogRequest:
                 return self.log_request(msg)
-            case Event.LogResponse():
+            case Event.LogResponse:
                 return self.log_response(msg)
             case Event.Broadcast:
                 return self.broadcast(msg)   
             case Event.ElectionTimeoutTest:
-                return self.test_msg(msg) 
+                await self.test_msg(msg)  
+            case Event.Debug:
+                print('debug msg')
+                self.print_msg(msg) 
+            case _:
+                raise ValueError
     
     async def election(self):
         """
@@ -346,3 +369,13 @@ class RaftNode:
                 # TODO: self.deliver_message(self.log[i]['payload']) ??
                 print("bleh")
             self.commit_length = ready
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("--id", type=int, default=0)
+    args = parser.parse_args()
+    node_info = {
+        'port': 8081 + args.id,
+    }
+    n = RaftNode(args.id, node_info)

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class Event(Enum):
+class Event(IntEnum):
     ElectionTimeout = 0
     ReplicationTimeout = 1
     VoteRequest = 2
@@ -9,7 +9,8 @@ class Event(Enum):
     LogRequest = 4
     LogResponse = 5
     Broadcast = 6
-    ElectionTimeoutTest = 0
+    ElectionTimeoutTest = 7
+    Debug = 8
 
 
 def get_last_log_term(log):

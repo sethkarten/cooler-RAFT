@@ -1,5 +1,5 @@
 import unittest
-from mainager import PipeMANager
+from mainager import PipeManager
 from raft import RaftNode
 from network import NetworkMANager
 from unittest.mock import patch, AsyncMock
@@ -33,8 +33,8 @@ class RaftMANager(unittest.IsolatedAsyncioTestCase):
 
 
     async def test_comms(self):
-        pied_piper = PipeMANager()
-        
+        pied_piper = PipeManager()
+
 
 if __name__ == '__main__':
     unittest.main()
