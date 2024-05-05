@@ -66,7 +66,7 @@ class RaftNode:
             self.writer.write(serialized_msg)
             await self.writer.drain()
         except ConnectionRefusedError:
-            print("Connection to the server was refused.")
+            print("Connection to the server was refused")
 
     async def election_timer(self):
         assert self.interval != -1
