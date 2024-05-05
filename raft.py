@@ -55,8 +55,7 @@ class RaftNode:
                 response_dict = json.loads(data.decode())
                 await self.event_logic(Event(response_dict['flag']), response_dict)
             except ConnectionRefusedError:
-                self.open_connection()
-                print("Connection to the server was refused. Opening new")
+                print("Connection to the server was refused.")
     
     async def send_network_message(self, msg):
         # print('Sending message ', msg)
@@ -67,8 +66,7 @@ class RaftNode:
             self.writer.write(serialized_msg)
             await self.writer.drain()
         except ConnectionRefusedError:
-            print("Connection to the server was refused. Opening new")
-            await self.open_connection(self.port)
+            print("Connection to the server was refused.")
 
     async def election_timer(self):
         assert self.interval != -1
