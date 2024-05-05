@@ -3,10 +3,10 @@ import numpy as np
 import asyncio
 
 class PipeManager(): 
-    def __init__(self):
+    def __init__(self, num_nodes):
         self.node_info = []
         self.tasks = []
-        self.num_nodes = 2
+        self.num_nodes = num_nodes
 
     async def pipe_piper(self, id, msg):
         writer = self.node_info[id][1]
@@ -25,9 +25,19 @@ class PipeManager():
                     raise
 
     async def handle_network_message(self, reader, writer):
-        data = await reader.read(100)
-        # print('Received:', data.decode())
-        response_dict = json.loads(data.decode())
+        # data = await reader.read(100)
+        # # print('Received:', data.decode())
+        # response_dict = json.loads(data.decode())
+        data_buffer = ''
+        while True:
+            chunk = await reader.read(100)  # Read chunks of the message
+            if not chunk:
+                break  # No more data, stop reading
+            data_buffer += chunk.decode()
+            if '\n' in data_buffer:  # Check if the end-of-message delimiter is in the buffer
+                break
+
+        response_dict = json.loads(data_buffer)
         print(response_dict)
         print(type(response_dict))
         sender = response_dict['candidate_id']
@@ -59,9 +69,10 @@ class PipeManager():
         # then callback received: -> pipe ;)
         return
 
-async def main():
-    elizabeth = PipeManager()
+async def main(num_nodes):
+    elizabeth = PipeManager(num_nodes)
     await elizabeth.pipe_layer()
 
 if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(main())
+    num_nodes = 2
+    asyncio.get_event_loop().run_until_complete(main(num_nodes))

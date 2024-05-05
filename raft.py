@@ -6,7 +6,7 @@ import asyncio
 from utils import get_last_log_term, get_majority, count_acks
 
 class RaftNode:
-    def __init__(self, id, node_info, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
+    def __init__(self, id, node_info, interval, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.id = id
         self.peers = node_info.keys() # Includes self.id and is ordered by ID
         self.term_number = term_number
@@ -18,13 +18,16 @@ class RaftNode:
         self.commit_length = commit_length # How many log entries have been committed
         self.sent_length = {peer_id: 0 for peer_id in self.peers} # Len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
+        self.reader = None
+        self.writer = None
 
-        self.interval = 10
+        self.interval = interval
+        print(self.interval)
 
         # NETWORK CONFIG
         # self.network_manager = NetworkManager(node_info)
         # self.event_queue = asyncio.Queue() 
-        self.port = node_info['port']
+        self.port = node_info[id]
         # asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
         # init all server magic
         self.start_raft_node()
@@ -42,19 +45,29 @@ class RaftNode:
                 await asyncio.sleep(1)
 
     async def receive_network_message(self, reader, writer):
-        print('RECEIVING MSG')
+        print('Receiving message at node ', self.id)
         assert self.port != -1
         while True:
             try:
-                data = await reader.read(100)
-                print('Received:', data.decode())
-                response_dict = json.loads(data.decode())
+                # data = await reader.read(100)
+                data_buffer = ''
+                while True:
+                    chunk = await reader.read(100)  # Read chunks of the message
+                    if not chunk:
+                        break  # No more data, stop reading
+                    data_buffer += chunk.decode()
+                    if '\n' in data_buffer:  # Check if the end-of-message delimiter is in the buffer
+                        break
+
+                response_dict = json.loads(data_buffer)
+                print('Received:', response_dict)
+                # response_dict = json.loads(data.decode())
                 await self.event_logic(Event(response_dict['flag']), response_dict)
             except ConnectionRefusedError:
                 print("Connection to the server was refused.")
     
     async def send_network_message(self, msg):
-        print('begin sending message', msg)
+        print('Sending message ', msg)
         assert self.port != -1
         try:
             await self.open_connection(8080)
@@ -69,13 +82,13 @@ class RaftNode:
         assert self.interval != -1
         while True:
             await asyncio.sleep(self.interval)
-            await self.event_logic(Event.ElectionTimeoutTest, None)
-            # await self.event_logic(Event.ElectionTimeout, None)
+            # await self.event_logic(Event.ElectionTimeoutTest, None)
+            await self.event_logic(Event.ElectionTimeout, None)
     
     async def replication_timer(self):
         while True:
             await asyncio.sleep(self.interval+5)
-            await self.event_logic(Event.ElectionTimeoutTest, None)
+            # await self.event_logic(Event.ElectionTimeoutTest, None)
             # await self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
@@ -103,10 +116,10 @@ class RaftNode:
         print('MSG RECEIVED', msg)
 
     async def event_logic(self, input, msg):
-        print('event enum received', input)
+        # print('event enum received', input)
         match input:
             case Event.ElectionTimeout:
-                return self.election()
+                await self.election()
             case Event.ReplicationTimeout:
                 return self.replicate_log()
             case Event.VoteRequest:
@@ -137,6 +150,7 @@ class RaftNode:
             (3) Increments term number, 
             (4) Sends out vote requests to other nodes in the cluster
         """
+        print("Starting election...")
         if self.role == 'leader':
             return
         
@@ -157,14 +171,15 @@ class RaftNode:
             'term': self.term_number,
             'candidate_loglen': len(self.log),
             'candidate_logterm': last_term,
-            'type': 'vote_request'
+            'flag': Event.VoteRequest
         }
 
         # Send async vote requests to all peers
         for peer_id in self.peers:
             if peer_id == self.id:
                 continue
-            await self.network_manager.send_message(peer_id, resp)
+            resp['destination'] = peer_id
+            await self.send_network_message(resp)
     
     async def replicate(self, peer_id):
         # Leader sends log entries after sent_length[follower]
@@ -181,7 +196,7 @@ class RaftNode:
             'type': 'log_request'
         }
 
-        await self.network_manager.send_message(peer_id, resp)
+        await self.send_network_message(resp)
     
     def replicate_log(self):
         """
@@ -207,6 +222,7 @@ class RaftNode:
                 (c) If Node already voted in this term, vote=False. 
                 (d) Otherwise, vote=True. 
         """
+        print("Receiving vote request at Node ", self.id)
         if args['term'] > self.term_number:
             self.role = 'follower'
             self.term_number = args['term']
@@ -372,8 +388,9 @@ class RaftNode:
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--id", type=int, default=0)
+    parser.add_argument("--num_nodes", type=int, default=2)
     args = parser.parse_args()
-    node_info = {
-        'port': 8081 + args.id,
-    }
+    node_info = {}
+    for i in range(args.num_nodes):
+        node_info[i] = 8081 + args.id
     n = RaftNode(args.id, node_info)
