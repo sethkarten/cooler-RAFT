@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import asyncio
+from utils import mainager_port, raft_node_base_port
 
 class PipeManager(): 
     def __init__(self, num_nodes):
@@ -29,14 +30,19 @@ class PipeManager():
         # print('Received:', data.decode())
         response_dict = json.loads(data.decode())
         sender = response_dict['id']
+        # print(sender, flush=True)
         receiver = response_dict['destination']
-        port = 8081+response_dict['destination']
+        # print(f'Received msg from node {sender}. Forwarding to {receiver}')
+        # print(response_dict)
+        port = raft_node_base_port+response_dict['destination']
         _, writer = await self.open_connection(port)
+        # serialized_msg = json.dumps(data_buffer).encode('utf-8')
         writer.write(data)
         await writer.drain()
+        # pipe to other node
 
     async def pipe_layer(self):
-        server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', 8080)
+        server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', mainager_port)
         addr = server.sockets[0].getsockname()
         print(f'Serving on {addr}')
         # bunch of ports
@@ -44,7 +50,7 @@ class PipeManager():
             self.tasks.append(asyncio.create_task(server.serve_forever()))
             # these might not be necessary anymore
             for i in range(self.num_nodes):
-                reader, writer = await self.open_connection(8081+i)
+                reader, writer = await self.open_connection(raft_node_base_port+i)
                 self.node_info.append((reader, writer))
                 self.tasks.append(asyncio.create_task(self.handle_network_message(reader, writer)))
             await asyncio.gather(*self.tasks)

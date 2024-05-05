@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 import json
 from utils import *
 import asyncio
-from utils import get_last_log_term, get_majority, count_acks
+from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port
 import random
 
 class RaftNode:
@@ -61,7 +61,7 @@ class RaftNode:
         print('Sending message ', msg)
         assert self.port != -1
         try:
-            await self.open_connection(8080)
+            await self.open_connection(mainager_port)
             serialized_msg = json.dumps(msg).encode('utf-8')
             self.writer.write(serialized_msg)
             await self.writer.drain()
@@ -74,10 +74,9 @@ class RaftNode:
             while self.electionTimerCounter < self.interval:
                 await asyncio.sleep(1)
                 self.electionTimerCounter += 1
-            # await asyncio.sleep(self.interval)
             self.electionTimerCounter = 0
-            # await self.event_logic(Event.ElectionTimeoutTest, None)
-            await self.event_logic(Event.ElectionTimeout, None)
+            await self.event_logic(Event.ElectionTimeoutTest, None)
+            # await self.event_logic(Event.ElectionTimeout, None)
     
     async def replication_timer(self):
         while True:
@@ -86,7 +85,7 @@ class RaftNode:
             # await self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
-        server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', 8081+self.id)
+        server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', raft_node_base_port+self.id)
         
         addr = server.sockets[0].getsockname()
         print(f'Serving on {addr}')
@@ -119,7 +118,6 @@ class RaftNode:
             case Event.VoteRequest:
                 await self.vote_request(msg)
             case Event.VoteResponse:
-                print(msg)
                 await self.vote_response(msg)
             case Event.LogRequest:
                 await self.log_request(msg)
@@ -396,8 +394,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--id", type=int, default=0)
     parser.add_argument("--num_nodes", type=int, default=2)
+    parser.add_argument("--interval", type=int, default=10)
     args = parser.parse_args()
     node_info = {}
-    for i in range(args.num_nodes):
-        node_info[i] = 8081 + args.id
-    n = RaftNode(args.id, node_info, random.randint(5,15))
+    node_info[args.id] = raft_node_base_port + args.id
+    n = RaftNode(args.id, node_info, random.randint(args.interval-5,args.interval+5))

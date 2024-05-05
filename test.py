@@ -7,6 +7,7 @@ from mainager import PipeManager
 import asyncio
 import random
 from argparse import ArgumentParser
+from utils import raft_node_base_port, mainager_port
 
 def start_node(id, node_info):
     asyncio.run(RaftNode(id, node_info, random.randint(5,25)).main_loop())
@@ -25,7 +26,7 @@ class TestRaft(unittest.IsolatedAsyncioTestCase):
     #     self.assertEqual(self.nodes[0].get_role(), 'leader', "Node 0 should be leader after election")
     #     self.assertEqual(self.nodes[0].get_leader(), self.nodes[0].id, "Node 0 should be its own leader")
 
-        # node_info = {1: ('127.0.0.1', 8081), 2: ('127.0.0.1', 8082)}
+        # node_info = {1: ('127.0.0.1', raft_node_base_port+0), 2: ('127.0.0.1', raft_node_base_port+1)}
         # network_manager = PipeManager()
         # await network_manager.pipe_layer()
         # nodes = [RaftNode(id=i, node_info=node_info) for i in node_info.keys()]
@@ -58,7 +59,7 @@ class TestRaft(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.nodes[0].get_role(), 'leader', "Node 0 should be leader after election")
         self.assertEqual(self.nodes[0].get_leader(), self.nodes[0].id, "Node 0 should be its own leader")
 
-        # node_info = {1: ('127.0.0.1', 8081), 2: ('127.0.0.1', 8082)}
+        # node_info = {1: ('127.0.0.1', raft_node_base_port), 2: ('127.0.0.1', mainager_port)}
         # network_manager = PipeManager()
         # await network_manager.pipe_layer()
         # nodes = [RaftNode(id=i, node_info=node_info) for i in node_info.keys()]
@@ -95,7 +96,7 @@ if __name__ == "__main__":
 
     node_info = {}
     for i in range(args.num_nodes):
-        node_info[i] = 8081 + i
+        node_info[i] = raft_node_base_port + i
 
     processes = []
     for i in range(args.num_nodes):
