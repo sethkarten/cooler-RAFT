@@ -27,23 +27,12 @@ class PipeManager():
 
     async def handle_network_message(self, reader, writer):
         data = await reader.read(1000)
-        # # print('Received:', data.decode())
-        # response_dict = json.loads(data.decode())
-        # data_buffer = ''
-        # while True:
-        #     chunk = await reader.read(100)  # Read chunks of the message
-        #     if not chunk:
-        #         break  # No more data, stop reading
-        #     data_buffer += chunk
-
-        # msg = data_buffer.decode()
-        response_dict = json.loads(data)
-        print(response_dict)
-        print(type(response_dict))
-        sender = response_dict['candidate_id']
-        print(sender, flush=True)
+        # print('Received:', data.decode())
+        response_dict = json.loads(data.decode())
+        sender = response_dict['id']
+        # print(sender, flush=True)
         receiver = response_dict['destination']
-        print(f'Received msg from node {sender}. Forwarding to {receiver}')
+        # print(f'Received msg from node {sender}. Forwarding to {receiver}')
         # print(response_dict)
         port = raft_node_base_port+response_dict['destination']
         _, writer = await self.open_connection(port)
@@ -51,7 +40,6 @@ class PipeManager():
         writer.write(data)
         await writer.drain()
         # pipe to other node
-
 
     async def pipe_layer(self):
         server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', mainager_port)

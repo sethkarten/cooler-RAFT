@@ -4,6 +4,7 @@ import json
 from utils import *
 import asyncio
 from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port
+import random
 
 class RaftNode:
     def __init__(self, id, node_info, interval, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
@@ -46,29 +47,18 @@ class RaftNode:
                 await asyncio.sleep(1)
 
     async def receive_network_message(self, reader, writer):
-        print('Receiving message at node ', self.id)
+        # print('Receiving message at node ', self.id)
         assert self.port != -1
         while True:
             try:
                 data = await reader.read(1000)
-                # data_buffer = ''
-                # while True:
-                #     chunk = await reader.read(100)  # Read chunks of the message
-                #     if not chunk:
-                #         break  # No more data, stop reading
-                #     data_buffer += chunk.decode()
-                #     if '\n' in data_buffer:  # Check if the end-of-message delimiter is in the buffer
-                #         break
-
-                response_dict = json.loads(data)
-                print('Received:', response_dict)
-                # response_dict = json.loads(data.decode())
+                response_dict = json.loads(data.decode())
                 await self.event_logic(Event(response_dict['flag']), response_dict)
             except ConnectionRefusedError:
                 print("Connection to the server was refused.")
     
     async def send_network_message(self, msg):
-        print('Sending message ', msg)
+        # print('Sending message ', msg)
         assert self.port != -1
         try:
             await self.open_connection(mainager_port)
@@ -77,7 +67,6 @@ class RaftNode:
             await self.writer.drain()
         except ConnectionRefusedError:
             print("Connection to the server was refused")
-        print('finished sending message')
 
     async def election_timer(self):
         assert self.interval != -1
@@ -109,7 +98,7 @@ class RaftNode:
 
     async def test_msg(self, msg):
         msg_data = {
-            'candidate_id': self.id,
+            'id': self.id,
             'destination': 1-self.id,   # dual
             'type': f'Hiiiii node {1-self.id}. It me, node {self.id}',
             'flag': Event.Debug
@@ -154,7 +143,7 @@ class RaftNode:
             (3) Increments term number, 
             (4) Sends out vote requests to other nodes in the cluster
         """
-        print("Starting election...")
+        print("STARTING ELECTION")
         if self.role == 'leader':
             return
         
@@ -171,7 +160,7 @@ class RaftNode:
         
         # Start vote request message 
         resp = {
-            'candidate_id': self.id,
+            'id': self.id,
             'term': self.term_number,
             'candidate_loglen': len(self.log),
             'candidate_logterm': last_term,
@@ -191,18 +180,19 @@ class RaftNode:
         suffix = self.log[prefix:]
         p_term = self.log[prefix-1]['term'] if prefix > 0 else 0
         resp = {
-            'leader': self.id,
+            'id': self.id,
             'term': self.term_number,
             'prefix': prefix,
             'suffix': suffix,
-            'prefix_term': p_term,
+            'prefix_len': p_term,
             'commit': self.commit_length,
-            'type': 'log_request'
+            'flag': Event.LogRequest,
+            'destination': peer_id
         }
 
         await self.send_network_message(resp)
     
-    def replicate_log(self):
+    async def replicate_log(self):
         """
         When ReplicationTimeout, Leader synchronizes log with Followers. 
         """
@@ -213,7 +203,7 @@ class RaftNode:
             if peer_id == self.id: 
                 continue
             
-            self.replicate(peer_id)
+            await self.replicate(peer_id)
 
     
     async def vote_request(self, args):
@@ -226,7 +216,7 @@ class RaftNode:
                 (c) If Node already voted in this term, vote=False. 
                 (d) Otherwise, vote=True. 
         """
-        print("Receiving vote request at Node ", self.id)
+        print("RECEIVING VOTE REQUEST AT ", self.id)
         if args['term'] > self.term_number:
             self.role = 'follower'
             self.term_number = args['term']
@@ -244,41 +234,45 @@ class RaftNode:
         # Decide whether to vote for requester
         vote = False      
         if (args['term'] == self.term_number) and checklog and \
-            (self.voted_id is None or self.voted_id == args['candidate_id']):
-            self.voted_id = args['candidate_id']
+            (self.voted_id is None or self.voted_id == args['id']):
+            self.voted_id = args['id']
             vote = True
         
         resp = {
-            'voter_id': self.id,
+            'id': self.id,
+            'destination': args['id'],
             'term': self.term_number,
             'vote': vote, 
-            'type': 'vote_response'
+            'flag': Event.VoteResponse
         }
 
-        await self.network_manager.send_message(args['candidate_id'], resp)
+        await self.send_network_message(resp)
     
-    def vote_response(self, args):
+    async def vote_response(self, args):
         """
         Updates Node as it receives a response to its vote request. 
             (1) If Node has a majority of votes via get_majority(peers), then Node ==> Leader. 
             (2) Otherwise, stay Candidate. 
         """
-        if (self.role == 'candidate') and (args['voter_term'] == self.term_number) and (args['vote']):
-            self.votes_received.add(args['voter_id'])
+        print("PROCESSING VOTE RESPONSE AT ", self.id)
+        if (self.role == 'candidate') and (args['term'] == self.term_number) and (args['vote']):
+            self.votes_received.add(args['id'])
 
             if len(self.votes_received) >= get_majority(self.peers): 
                 self.role = 'leader'
                 self.leader = self.id
+                print("My leader is ", self.leader)
+                print("I am a ", self.role)
                 for peer_id in self.peers:
                     if peer_id == self.id: continue
                     self.sent_length[peer_id] = len(self.log)
                     self.ack_length[peer_id] = 0
-                self.replicate_log()
+                await self.replicate_log()
         elif args['term'] > self.term_number:
             self.role = 'follower'
             self.term_number = args['term']
             self.voted_id = None
-            # TODO -- implement + call self.runner.election_timer_reset() 
+            # self.electionTimerCounter = 0
     
     async def log_request(self, args):
         """
@@ -290,13 +284,15 @@ class RaftNode:
         if args['term'] > self.term_number:
             self.term_number = args['term']
             self.voted_id = None
-            # TODO -- implement + call self.runner.election_timer_reset() -- bc node is out of date.
+            # self.electionTimerCounter = 0
         
         # If term from log request matches, acknowledge current leader + become follower. 
         elif args['term'] == self.term_number:
             self.role = 'follower'
-            self.leader = args['leader']
-            # TODO -- implement + call self.runner.election_timer_reset()
+            self.leader = args['id']
+            print("My leader is ", self.leader)
+            print("I am a ", self.role)
+            # self.electionTimerCounter = 0
         
         # Check if logs are consistent. 
         checklog = False
@@ -308,20 +304,21 @@ class RaftNode:
         # If logs are consistent, update self log to match leader and acknowledge. 
         if checklog and (args['term'] == self.term_number):
             self.log = self.log[:args['prefix_len']] + args['suffix']
-            if self.commit_length < args['commit_length']:
-                self.commit_length = min(args['commit_length'], len(self.log))
+            if self.commit_length < args['commit']:
+                self.commit_length = min(args['commit'], len(self.log))
             ack = args['prefix'] + len(args['suffix'])
             success = True
 
         resp = {
-            'follower': self.id,
+            'id': self.id,
+            'destination': args['id'],
             'term': self.term_number,
             'ack': ack,
             'success': success,
-            'type': 'log_response'
+            'flag': Event.LogResponse
         }
 
-        await self.network_manager.send_message(args['leader'], resp)
+        await self.send_network_message(resp)
     
     async def log_response(self, args):
         """
@@ -338,14 +335,14 @@ class RaftNode:
             await self.election_timer_reset() # TODO
 
         elif args['term'] == self.term_number and self.role == 'leader':
-            if args['success'] and args['ack'] >= self.ack_length[args['follower']]:
-                self.sent_length[args['follower']] = args['ack']
-                self.ack_length[args['follower']] = args['ack']
+            if args['success'] and args['ack'] >= self.ack_length[args['id']]:
+                self.sent_length[args['id']] = args['ack']
+                self.ack_length[args['id']] = args['ack']
                 self.commit_log()
 
-            elif self.sent_length[args['follower']] > 0:
-                self.sent_length[args['follower']] -= 1
-                await self.replicate(self, args['follower'])
+            elif self.sent_length[args['id']] > 0:
+                self.sent_length[args['id']] -= 1
+                await self.replicate(self, args['id'])
 
     async def broadcast(self, payload):
         """
@@ -361,12 +358,15 @@ class RaftNode:
             self.log.append(log_entry)
             self.ack_length[self.id] = len(self.log)
             await self.replicate_log()
+
         elif self.leader is not None and self.leader in self.node_info:
             resp = {
+                'id': self.id,
                 'payload': payload,
-                'type': 'broadcast'
+                'destination': self.node_info[self.leader],
+                'flag': Event.Broadcast
             }
-            await self.network_manager.send_message(self.node_info[self.leader], resp)
+            await self.send_message(resp)
     
     def commit_log(self):
         """
@@ -396,6 +396,5 @@ if __name__ == '__main__':
     parser.add_argument("--interval", type=int, default=10)
     args = parser.parse_args()
     node_info = {}
-    for i in range(args.num_nodes):
-        node_info[i] = raft_node_base_port + args.id
-    n = RaftNode(args.id, node_info, args.interval)
+    node_info[args.id] = raft_node_base_port + args.id
+    n = RaftNode(args.id, node_info, random.randint(args.interval-5,args.interval+5))
