@@ -4,12 +4,13 @@ import json
 from mainager import PipeManager
 from raft import RaftNode
 from unittest.mock import patch, AsyncMock
+from utils import raft_node_base_port, mainager_port
 
 class TestRaft(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
         self.num_nodes = 2
-        self.nodes = [RaftNode(i, {j: 8081 + j for j in range(self.num_nodes)}) for i in range(self.num_nodes)]
+        self.nodes = [RaftNode(i, {j: raft_node_base_port + j for j in range(self.num_nodes)}) for i in range(self.num_nodes)]
 
     async def test_leader_election(self):
         await self.nodes[0].start_election()
@@ -17,7 +18,7 @@ class TestRaft(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.nodes[0].get_role(), 'leader', "Node 0 should be leader after election")
         self.assertEqual(self.nodes[0].get_leader(), self.nodes[0].id, "Node 0 should be its own leader")
 
-        # node_info = {1: ('127.0.0.1', 8081), 2: ('127.0.0.1', 8082)}
+        # node_info = {1: ('127.0.0.1', raft_node_base_port), 2: ('127.0.0.1', mainager_port)}
         # network_manager = PipeManager()
         # await network_manager.pipe_layer()
         # nodes = [RaftNode(id=i, node_info=node_info) for i in node_info.keys()]

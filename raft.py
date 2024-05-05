@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 import json
 from utils import *
 import asyncio
-from utils import get_last_log_term, get_majority, count_acks
+from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port
 
 class RaftNode:
     def __init__(self, id, node_info, interval, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
@@ -20,6 +20,7 @@ class RaftNode:
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
         self.reader = None
         self.writer = None
+        self.electionTimerCounter = 0
 
         self.interval = interval
         print(self.interval)
@@ -49,17 +50,17 @@ class RaftNode:
         assert self.port != -1
         while True:
             try:
-                # data = await reader.read(100)
-                data_buffer = ''
-                while True:
-                    chunk = await reader.read(100)  # Read chunks of the message
-                    if not chunk:
-                        break  # No more data, stop reading
-                    data_buffer += chunk.decode()
-                    if '\n' in data_buffer:  # Check if the end-of-message delimiter is in the buffer
-                        break
+                data = await reader.read(1000)
+                # data_buffer = ''
+                # while True:
+                #     chunk = await reader.read(100)  # Read chunks of the message
+                #     if not chunk:
+                #         break  # No more data, stop reading
+                #     data_buffer += chunk.decode()
+                #     if '\n' in data_buffer:  # Check if the end-of-message delimiter is in the buffer
+                #         break
 
-                response_dict = json.loads(data_buffer)
+                response_dict = json.loads(data)
                 print('Received:', response_dict)
                 # response_dict = json.loads(data.decode())
                 await self.event_logic(Event(response_dict['flag']), response_dict)
@@ -70,7 +71,7 @@ class RaftNode:
         print('Sending message ', msg)
         assert self.port != -1
         try:
-            await self.open_connection(8080)
+            await self.open_connection(mainager_port)
             serialized_msg = json.dumps(msg).encode('utf-8')
             self.writer.write(serialized_msg)
             await self.writer.drain()
@@ -81,9 +82,12 @@ class RaftNode:
     async def election_timer(self):
         assert self.interval != -1
         while True:
-            await asyncio.sleep(self.interval)
-            # await self.event_logic(Event.ElectionTimeoutTest, None)
-            await self.event_logic(Event.ElectionTimeout, None)
+            while self.electionTimerCounter < self.interval:
+                await asyncio.sleep(1)
+                self.electionTimerCounter += 1
+            self.electionTimerCounter = 0
+            await self.event_logic(Event.ElectionTimeoutTest, None)
+            # await self.event_logic(Event.ElectionTimeout, None)
     
     async def replication_timer(self):
         while True:
@@ -92,7 +96,7 @@ class RaftNode:
             # await self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
-        server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', 8081+self.id)
+        server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', raft_node_base_port+self.id)
         
         addr = server.sockets[0].getsockname()
         print(f'Serving on {addr}')
@@ -121,17 +125,17 @@ class RaftNode:
             case Event.ElectionTimeout:
                 await self.election()
             case Event.ReplicationTimeout:
-                return self.replicate_log()
+                await self.replicate_log()
             case Event.VoteRequest:
-                return self.vote_request(msg)
+                await self.vote_request(msg)
             case Event.VoteResponse:
-                return self.vote_response(msg)
+                await self.vote_response(msg)
             case Event.LogRequest:
-                return self.log_request(msg)
+                await self.log_request(msg)
             case Event.LogResponse:
-                return self.log_response(msg)
+                await self.log_response(msg)
             case Event.Broadcast:
-                return self.broadcast(msg)   
+                await self.broadcast(msg)   
             case Event.ElectionTimeoutTest:
                 await self.test_msg(msg)  
             case Event.Debug:
@@ -389,8 +393,9 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--id", type=int, default=0)
     parser.add_argument("--num_nodes", type=int, default=2)
+    parser.add_argument("--interval", type=int, default=10)
     args = parser.parse_args()
     node_info = {}
     for i in range(args.num_nodes):
-        node_info[i] = 8081 + args.id
-    n = RaftNode(args.id, node_info)
+        node_info[i] = raft_node_base_port + args.id
+    n = RaftNode(args.id, node_info, args.interval)
