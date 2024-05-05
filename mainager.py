@@ -28,26 +28,12 @@ class PipeManager():
         data = await reader.read(1000)
         # print('Received:', data.decode())
         response_dict = json.loads(data.decode())
-        # data_buffer = ''
-        # while True:
-        #     chunk = await reader.read(100)  
-        #     if not chunk:
-        #         break  
-        #     data_buffer += chunk
-
-        # response_dict = json.loads(data_buffer.decode())
-        # print(response_dict)
-        # print(type(response_dict))
         sender = response_dict['id']
-        # print(sender, flush=True)
         receiver = response_dict['destination']
-        # print(f'Received msg from node {sender}. Forwarding to {receiver}')
-        # print(response_dict)
         port = 8081+response_dict['destination']
         _, writer = await self.open_connection(port)
         writer.write(data)
         await writer.drain()
-        # pipe to other node
 
     async def pipe_layer(self):
         server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', 8080)

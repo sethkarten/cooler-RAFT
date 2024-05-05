@@ -58,7 +58,7 @@ class RaftNode:
                 print("Connection to the server was refused.")
     
     async def send_network_message(self, msg):
-        # print('Sending message ', msg)
+        print('Sending message ', msg)
         assert self.port != -1
         try:
             await self.open_connection(8080)
@@ -71,10 +71,11 @@ class RaftNode:
     async def election_timer(self):
         assert self.interval != -1
         while True:
-            # while self.electionTimerCounter < self.interval:
-            #     await asyncio.sleep(1)
-            #     self.electionTimerCounter += 1
-            await asyncio.sleep(self.interval)
+            while self.electionTimerCounter < self.interval:
+                await asyncio.sleep(1)
+                self.electionTimerCounter += 1
+            # await asyncio.sleep(self.interval)
+            self.electionTimerCounter = 0
             # await self.event_logic(Event.ElectionTimeoutTest, None)
             await self.event_logic(Event.ElectionTimeout, None)
     
@@ -273,7 +274,7 @@ class RaftNode:
             self.role = 'follower'
             self.term_number = args['term']
             self.voted_id = None
-            # self.electionTimerCounter = 0
+            self.electionTimerCounter = 0
     
     async def log_request(self, args):
         """
@@ -285,7 +286,7 @@ class RaftNode:
         if args['term'] > self.term_number:
             self.term_number = args['term']
             self.voted_id = None
-            # self.electionTimerCounter = 0
+            self.electionTimerCounter = 0
         
         # If term from log request matches, acknowledge current leader + become follower. 
         elif args['term'] == self.term_number:
@@ -293,7 +294,7 @@ class RaftNode:
             self.leader = args['id']
             print("My leader is ", self.leader)
             print("I am a ", self.role)
-            # self.electionTimerCounter = 0
+            self.electionTimerCounter = 0
         
         # Check if logs are consistent. 
         checklog = False
@@ -333,7 +334,8 @@ class RaftNode:
             self.voted_id = None
             self.term_number = args['term']
             self.role = 'follower'
-            await self.election_timer_reset() # TODO
+            # await self.election_timer_reset() # TODO
+            self.electionTimerCounter = 0
 
         elif args['term'] == self.term_number and self.role == 'leader':
             if args['success'] and args['ack'] >= self.ack_length[args['id']]:
