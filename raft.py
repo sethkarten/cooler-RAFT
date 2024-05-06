@@ -1,6 +1,7 @@
 
 from argparse import ArgumentParser
 import json
+from rpc import RPCManager
 from utils import *
 import asyncio
 from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port
@@ -25,47 +26,14 @@ class RaftNode:
         self.reader = None
         self.writer = None
         self.electionTimerCounter = 0
-        self.log_file_path = log_file_path
-        self.port = node_info[id]
         self.interval = interval
-        print("Randomly assigned election timeout:", self.interval)
+        print("Randomly assigned election timeout", self.interval)
+        self.port = node_info[id]
+        self.net = RPCManager(self.port, self.event_logic)
         self.start_raft_node()
 
     def start_raft_node(self):
-        asyncio.get_event_loop().run_until_complete(self.logic_loop())
-
-    async def open_connection(self, port):
-        # Wait for 30 seconds, then raise TimeoutError
-        for i in range(10):
-            try:
-                self.reader, self.writer = await asyncio.open_connection('127.0.0.1', port)
-                return
-            except (ConnectionRefusedError, TypeError):
-                await asyncio.sleep(1)
-
-    async def receive_network_message(self, reader, writer):
-        # print('Receiving message at node ', self.id)
-        assert self.port != -1
-        while True:
-            try:
-                data = await reader.read(1000)
-                if not data: # TODO: fix
-                    break
-                response_dict = json.loads(data.decode())
-                await self.event_logic(Event(response_dict['flag']), response_dict)
-            except ConnectionRefusedError:
-                print("Connection to the server was refused.")
-    
-    async def send_network_message(self, msg):
-        print('Sending message ', msg)
-        assert self.port != -1
-        try:
-            await self.open_connection(mainager_port)
-            serialized_msg = json.dumps(msg).encode('utf-8')
-            self.writer.write(serialized_msg)
-            await self.writer.drain()
-        except ConnectionRefusedError:
-            print("Connection to the server was refused")
+        asyncio.run(self.logic_loop())
 
     async def election_timer(self):
         assert self.interval != -1
@@ -84,15 +52,14 @@ class RaftNode:
             # await self.event_logic(Event.ReplicationTimeout, None)
 
     async def logic_loop(self):
-        server = await asyncio.start_server(self.receive_network_message, '127.0.0.1', raft_node_base_port+self.id)
-        
-        addr = server.sockets[0].getsockname()
+        await self.net.start_server()
+        addr = self.net.server.sockets[0].getsockname()
         print(f'Serving on {addr}')
 
-        async with server:
+        async with self.net.server:
             task1 = asyncio.create_task(self.election_timer())
             task2 = asyncio.create_task(self.replication_timer())
-            task3 = asyncio.create_task(server.serve_forever())
+            task3 = asyncio.create_task(self.net.server.serve_forever())
             await asyncio.gather(task1, task2, task3)   # <--- beautiful 😭
 
     async def test_msg(self, msg):
@@ -102,10 +69,14 @@ class RaftNode:
             'type': f'Hiiiii node {1-self.id}. It me, node {self.id}',
             'flag': Event.Debug
         }
-        await self.send_network_message(msg_data)
+        await self.net.send_network_message(msg_data)
 
     def print_msg(self, msg):
         print('MSG RECEIVED', msg)
+
+    async def process_client(self, msg):
+        data = msg['data']
+        self.log.append(data)
 
     async def event_logic(self, input, msg):
         # print('event enum received', input)
@@ -129,6 +100,8 @@ class RaftNode:
             case Event.Debug:
                 print('debug msg')
                 self.print_msg(msg) 
+            case Event.Client:
+                await self.process_client(msg)
             case _:
                 raise ValueError
     
@@ -171,7 +144,7 @@ class RaftNode:
             if peer_id == self.id:
                 continue
             resp['destination'] = peer_id
-            await self.send_network_message(resp)
+            await self.net.send_network_message(resp)
     
     async def replicate(self, peer_id):
         # Leader sends log entries after sent_length[follower]
@@ -190,7 +163,7 @@ class RaftNode:
             'destination': peer_id
         }
 
-        await self.send_network_message(resp)
+        await self.net.send_network_message(resp)
     
     async def replicate_log(self):
         """
@@ -246,7 +219,7 @@ class RaftNode:
             'flag': Event.VoteResponse
         }
 
-        await self.send_network_message(resp)
+        await self.net.send_network_message(resp)
     
     async def vote_response(self, args):
         """
@@ -319,7 +292,7 @@ class RaftNode:
             'flag': Event.LogResponse
         }
 
-        await self.send_network_message(resp)
+        await self.net.send_network_message(resp)
     
     async def log_response(self, args):
         """
