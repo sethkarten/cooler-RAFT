@@ -9,11 +9,6 @@ class PipeManager():
         self.tasks = []
         self.num_nodes = num_nodes
 
-    async def pipe_piper(self, id, msg):
-        writer = self.node_info[id][1]
-        writer.write(msg)
-        await writer.drain()
-
     async def open_connection(self, port):
         # Wait for 30 seconds, then raise TimeoutError
         for i in range(10):
@@ -49,10 +44,10 @@ class PipeManager():
         async with server:
             self.tasks.append(asyncio.create_task(server.serve_forever()))
             # these might not be necessary anymore
-            for i in range(self.num_nodes):
-                reader, writer = await self.open_connection(raft_node_base_port+i)
-                self.node_info.append((reader, writer))
-                self.tasks.append(asyncio.create_task(self.handle_network_message(reader, writer)))
+            # for i in range(self.num_nodes):
+            #     reader, writer = await self.open_connection(raft_node_base_port+i)
+            #     self.node_info.append((reader, writer))
+            #     self.tasks.append(asyncio.create_task(self.handle_network_message(reader, writer)))
             await asyncio.gather(*self.tasks)
         # wait for msgs from all connections
         # then callback received: -> pipe ;)

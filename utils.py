@@ -14,6 +14,7 @@ class Event(IntEnum):
     Broadcast = 6
     ElectionTimeoutTest = 7
     Debug = 8
+    Client = 9
 
 
 def get_last_log_term(log):
