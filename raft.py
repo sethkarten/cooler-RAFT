@@ -89,7 +89,6 @@ class RaftNode:
             await self.net.send_network_message(msg)
 
     async def event_logic(self, input, msg):
-        # print('event enum received', input)
         match input:
             case Event.ElectionTimeout:
                 await self.election()
@@ -279,8 +278,6 @@ class RaftNode:
         elif args['term'] == self.term_number:
             self.role = 'follower'
             self.leader = args['id']
-            print("My leader is", self.leader)
-            print("I am a", self.role)
             self.electionTimerCounter = 0
         
         # Check if logs are consistent. 
@@ -382,8 +379,6 @@ class RaftNode:
             if count_acks(self.ack_length, i) >= min_acks:
                 ready = i
 
-        print("term", self.term_number)
-        print("self.log[ready - 1]['term']", self.log[ready - 1]['term'])
         if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
             for i in range(self.commit_length, ready):
                 self.commit_to_file(self.log[i]) 

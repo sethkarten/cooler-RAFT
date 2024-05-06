@@ -1,20 +1,44 @@
 from multiprocessing import Process
-from argparse import ArgumentParser
-from mainager import PipeManager
-import asyncio 
-from raft import RaftNode
+import asyncio
+import time
 import random
-from client import Client
-from utils import raft_node_base_port
+import sys
+from argparse import ArgumentParser
 
-def start_node(id, node_info):
-    asyncio.run(RaftNode(id, node_info, random.randint(5,25)).main_loop())
+from mainager import PipeManager
+from raft import RaftNode
+from client import Client
+from utils import raft_node_base_port, TOTAL_NODES
+
+
+def start_node(id, node_info, interval, filepath):
+    # Set up a new event loop for the process
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        node = RaftNode(id, node_info, random.randint(interval-5, interval+5), TOTAL_NODES, filepath)
+        loop.run_until_complete(node.main_loop())
+    except Exception as e:
+        print(f"Exception in node {id}: {e}")
+    finally:
+        loop.close()
 
 def start_pipe_manager(num_nodes):
-    asyncio.run(main(num_nodes))
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(main(num_nodes))
+    finally:
+        loop.close()
 
 def start_client():
-    asyncio.run(Client())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        client = Client()
+        loop.run_until_complete(client.run())
+    finally:
+        loop.close()
 
 async def main(num_nodes):
     pm = PipeManager(num_nodes)
@@ -36,17 +60,18 @@ if __name__ == "__main__":
 
     processes = []
     for i in range(args.num_nodes):
-        p = Process(target=start_node, args=(i, node_info,)) 
+        p = Process(target=start_node, args=(i, node_info, args.interval, args.filepath))
         p.start()
         processes.append(p)
 
-    p = Process(target=start_client)
-    p.start()
-    processes.append(p)
+    client_process = Process(target=start_client)
+    client_process.start()
+    processes.append(client_process)
 
+    # Properly wait for processes to finish and handle sleeping correctly
     for p in processes:
         p.join()
-        asyncio.sleep(1)
+        time.sleep(1)
 
     manager_process.join()
 
