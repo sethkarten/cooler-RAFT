@@ -17,7 +17,7 @@ def start_pipe_manager(num_nodes):
 
 async def main(num_nodes):
     elizabeth = PipeManager(num_nodes)
-    await elizabeth.pipe_layer()
+    await elizabeth.start_piping()
 
 class TestRaft(unittest.IsolatedAsyncioTestCase):
     # async def test_leader_election(self):

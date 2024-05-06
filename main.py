@@ -18,7 +18,7 @@ def start_client():
 
 async def main(num_nodes):
     elizabeth = PipeManager(num_nodes)
-    await elizabeth.pipe_layer()
+    await elizabeth.start_piping()
 
 if __name__ == "__main__":
     parser = ArgumentParser()
