@@ -58,5 +58,5 @@ async def main(num_nodes):
     await elizabeth.pipe_layer()
 
 if __name__ == '__main__':
-    num_nodes = 2
+    num_nodes = 3
     asyncio.get_event_loop().run_until_complete(main(num_nodes))
