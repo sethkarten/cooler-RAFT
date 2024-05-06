@@ -27,7 +27,6 @@ class RaftNode:
         self.reader = None
         self.writer = None
         self.electionTimerCounter = 0
-        self.replicationTimerCounter = 0
         self.interval = interval
         print("Randomly assigned election timeout", self.interval)
         self.port = node_info[id]
@@ -48,11 +47,9 @@ class RaftNode:
                 self.electionTimerCounter = 0
     
     async def replication_timer(self):
-        await asyncio.sleep(1)
-        self.replicationTimerCounter += 1
-        if self.replicationTimerCounter >= 5:
+        while True:
+            await asyncio.sleep(5)
             await self.event_logic(Event.ReplicationTimeout, None) 
-            self.replicationTimerCounter = 0
 
     async def commit_suicide(self):
         print('Goodbye Cruel World.')

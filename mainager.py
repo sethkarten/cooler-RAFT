@@ -17,10 +17,13 @@ class PipeManager():
         if sender in self.failure_nodes:
             return False
         receiver = int(msg['destination'])
-        if receiver in self.failure_nodes:
-            return False
+        if sender == -1:
+            while int(msg['destination']) in self.failure_nodes:
+                msg['destination'] = np.random.randint(0, TOTAL_NODES)
+                receiver = msg['destination']
         # print(f'Received msg from node {sender}. Forwarding to {receiver}')
         # print(msg)
+        # print('receiver', receiver)
         port = raft_node_base_port + receiver
         # pipe to other node
         await self.net.send_individual_message(msg, port)
@@ -28,13 +31,13 @@ class PipeManager():
     async def failure_timer(self):
         await asyncio.sleep(20)
         failure_node = np.random.randint(0,TOTAL_NODES)
+        print(f'Node {failure_node} fails.')
         msg = {
             'id': -2,
             'destination': failure_node,
             'flag': Event.Death
         }
         await self.msg_callback(None, msg)
-        print(f'Node {failure_node} fails.')
         self.failure_nodes.append(failure_node)
 
     async def start_piping(self):
