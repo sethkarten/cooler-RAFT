@@ -78,7 +78,7 @@ class RaftNode:
         # if leader
         if self.leader == self.id:
             data = msg['data']
-            self.log.append(data)
+            self.log.append({'term': self.term_number, 'entry': data})
         else:
             # forward message to the leader
             msg['destination'] = self.leader
@@ -281,6 +281,7 @@ class RaftNode:
                 checklog  = True
 
         success = True
+        ack = 0
         # If logs are consistent, update self log to match leader and acknowledge. 
         if checklog and (args['term'] == self.term_number):
             self.log = self.log[:args['prefix_len']] + args['suffix']
@@ -332,7 +333,7 @@ class RaftNode:
             (2) Otherwise, send message to Leader. 
         """
         if self.role == 'leader':
-            self.log.append(payload)
+            self.log.append({'term': self.term_number, 'entry': payload})
             self.ack_length[self.id] = len(self.log)
             await self.replicate_log()
 
@@ -351,7 +352,7 @@ class RaftNode:
             with open(self.log_file_path, 'w') as f:
                 f.write("")
         with open(self.log_file_path, 'a') as f:
-            f.write(json.dumps(entry) + '\n')
+            f.write(json.dumps(entry['entry']) + '\n')
     
     def commit_log(self):
         """
@@ -360,11 +361,12 @@ class RaftNode:
         (2) If there are new entries to commit, commit to log. 
         """
         print("COMMIT LOG")
+        print(self.log)
         min_acks = (len(self.peers) + 1) // 2
         ready = 0
 
         for i in range(self.commit_length + 1, len(self.log) + 1):
-            if count_acks(self.acked_length, i) >= min_acks:
+            if count_acks(self.ack_length, i) >= min_acks:
                 ready = i
 
         if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
