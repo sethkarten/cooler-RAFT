@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import asyncio
+from rpc import RPCManager
 from utils import mainager_port, raft_node_base_port
 
 class PipeManager(): 
@@ -8,54 +9,29 @@ class PipeManager():
         self.node_info = []
         self.tasks = []
         self.num_nodes = num_nodes
+        self.net = RPCManager(mainager_port, self.msg_callback)
 
-    async def open_connection(self, port):
-        # Wait for 30 seconds, then raise TimeoutError
-        for i in range(10):
-            try:
-                reader, writer = await asyncio.open_connection('127.0.0.1', port)
-                return reader, writer
-            except (ConnectionRefusedError, TypeError):
-                await asyncio.sleep(1)
-                if i == 9:
-                    raise
-
-    async def handle_network_message(self, reader, writer):
-        data = await reader.read(1000)
-        # print('Received:', data.decode())
-        response_dict = json.loads(data.decode())
-        sender = response_dict['id']
-        # print(sender, flush=True)
-        receiver = response_dict['destination']
+    async def msg_callback(self, flag, msg):
+        # sender = response_dict['id']
+        receiver = msg['destination']
         # print(f'Received msg from node {sender}. Forwarding to {receiver}')
-        # print(response_dict)
-        port = raft_node_base_port+response_dict['destination']
-        _, writer = await self.open_connection(port)
-        # serialized_msg = json.dumps(data_buffer).encode('utf-8')
-        writer.write(data)
-        await writer.drain()
+        # print(msg)
+        port = raft_node_base_port+msg['destination']
         # pipe to other node
+        await self.net.send_individual_message(msg, port)
 
-    async def pipe_layer(self):
-        server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', mainager_port)
-        addr = server.sockets[0].getsockname()
+    async def start_piping(self):
+        await self.net.start_server()
+        addr = self.net.server.sockets[0].getsockname()
         print(f'Serving on {addr}')
         # bunch of ports
-        async with server:
-            self.tasks.append(asyncio.create_task(server.serve_forever()))
-            # these might not be necessary anymore
-            # for i in range(self.num_nodes):
-            #     reader, writer = await self.open_connection(raft_node_base_port+i)
-            #     self.node_info.append((reader, writer))
-            #     self.tasks.append(asyncio.create_task(self.handle_network_message(reader, writer)))
+        async with self.net.server:
+            self.tasks.append(asyncio.create_task(self.net.server.serve_forever()))
             await asyncio.gather(*self.tasks)
-        # wait for msgs from all connections
-        # then callback received: -> pipe ;)
-        return
 
 async def main(num_nodes):
     elizabeth = PipeManager(num_nodes)
-    await elizabeth.pipe_layer()
+    await elizabeth.start_piping()
 
 if __name__ == '__main__':
     num_nodes = 3

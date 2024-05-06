@@ -28,6 +28,17 @@ class RPCManager:
             await writer.drain()
         except ConnectionRefusedError:
             print("Connection to the server was refused")
+            return
+        
+    async def send_individual_message(self, msg, port):
+        try:
+            _, writer = await self.open_connection(port)
+            serialized_msg = json.dumps(msg).encode('utf-8')
+            writer.write(serialized_msg)
+            await writer.drain()
+        except ConnectionRefusedError:
+            print("Connection to the server was refused")
+            return
 
     async def handle_network_message(self, reader, writer):
         data = await reader.read(1000)
