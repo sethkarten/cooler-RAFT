@@ -26,16 +26,9 @@ class RaftNode:
         self.writer = None
         self.electionTimerCounter = 0
         self.log_file_path = log_file_path
-
+        self.port = node_info[id]
         self.interval = interval
         print("Randomly assigned election timeout:", self.interval)
-
-        # NETWORK CONFIG
-        # self.network_manager = NetworkManager(node_info)
-        # self.event_queue = asyncio.Queue() 
-        self.port = node_info[id]
-        # asyncio.create_task(self.network_manager.start_server('0.0.0.0', self.port, self.handle_network_message)) # TODO
-        # init all server magic
         self.start_raft_node()
 
     def start_raft_node(self):
