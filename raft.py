@@ -26,6 +26,7 @@ class RaftNode:
         self.reader = None
         self.writer = None
         self.electionTimerCounter = 0
+        self.replicationTimerCounter = 0
         self.interval = interval
         print("Randomly assigned election timeout", self.interval)
         self.port = node_info[id]
@@ -39,12 +40,6 @@ class RaftNode:
     async def election_timer(self):
         assert self.interval != -1
         while True:
-            # while self.electionTimerCounter < self.interval:
-            #     await asyncio.sleep(1)
-            #     self.electionTimerCounter += 1
-            # self.electionTimerCounter = 0
-            # # await self.event_logic(Event.ElectionTimeoutTest, None)
-            # await self.event_logic(Event.ElectionTimeout, None)
             await asyncio.sleep(1)
             self.electionTimerCounter += 1
             if self.electionTimerCounter >= self.interval:
@@ -52,10 +47,11 @@ class RaftNode:
                 self.electionTimerCounter = 0
     
     async def replication_timer(self):
-        while True:
-            await asyncio.sleep(5) # Needs to be shorter than ElectionTimeout!
-            # await self.event_logic(Event.ElectionTimeoutTest, None)
-            # await self.event_logic(Event.ReplicationTimeout, None)
+        await asyncio.sleep(1)
+        self.replicationTimerCounter += 1
+        if self.replicationTimerCounter >= 5:
+            await self.event_logic(Event.ReplicationTimeout, None) 
+            self.replicationTimerCounter = 0
 
     async def logic_loop(self):
         await self.net.start_server()
@@ -377,14 +373,14 @@ class RaftNode:
         print("COMMITTING LOG", self.log)
         min_acks = (len(self.peers) + 1) // 2 - 1
         ready = 0
-        print(f'ack list {self.ack_length}\n min acks {min_acks}')
+        # print(f'ack list {self.ack_length}\n min acks {min_acks}')
         for i in range(self.commit_length + 1, len(self.log) + 1):
             if count_acks(self.ack_length, i) >= min_acks:
                 ready = i
 
-        # if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
-        if ready > 0 and self.commit_length < len(self.log):
-        # if ready > 0:
+        print("term", self.term_number)
+        print("self.log[ready - 1]['term']", self.log[ready - 1]['term'])
+        if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
             for i in range(self.commit_length, ready):
                 self.commit_to_file(self.log[i]) 
                 self.commit_length += 1
