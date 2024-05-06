@@ -13,10 +13,12 @@ class PipeManager():
         self.failure_nodes = []
 
     async def msg_callback(self, flag, msg):
-        sender = msg['id']
+        sender = int(msg['id'])
         if sender in self.failure_nodes:
             return False
         receiver = int(msg['destination'])
+        if receiver in self.failure_nodes:
+            return False
         # print(f'Received msg from node {sender}. Forwarding to {receiver}')
         # print(msg)
         port = raft_node_base_port + receiver

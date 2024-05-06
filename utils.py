@@ -1,4 +1,5 @@
 from enum import IntEnum
+import numpy as np
 
 # total number of raft nodes
 TOTAL_NODES = 3
@@ -32,7 +33,7 @@ def get_majority(peers):
     """
     Returns the number of nodes required for a majority vote. 
     """
-    return ((len(peers) + 1) + 1) / 2
+    return int(np.ceil((len(peers) + 1)  / 2))
 
 def count_acks(acked_length, length):
     """
