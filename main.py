@@ -12,7 +12,6 @@ from utils import raft_node_base_port, TOTAL_NODES
 
 
 def start_node(id, node_info, interval, filepath):
-    # Set up a new event loop for the process
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -68,7 +67,6 @@ if __name__ == "__main__":
     client_process.start()
     processes.append(client_process)
 
-    # Properly wait for processes to finish and handle sleeping correctly
     for p in processes:
         p.join()
         time.sleep(1)
