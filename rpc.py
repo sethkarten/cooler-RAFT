@@ -26,9 +26,12 @@ class RPCManager:
             serialized_msg = json.dumps(msg).encode('utf-8')
             writer.write(serialized_msg)
             await writer.drain()
+            return True
         except ConnectionRefusedError:
             print("Connection to the server was refused")
-            return
+            return False
+        return False
+        
         
     async def send_individual_message(self, msg, port):
         try:

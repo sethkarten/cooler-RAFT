@@ -1,5 +1,8 @@
 from enum import IntEnum
 
+# total number of raft nodes
+TOTAL_NODES = 3
+
 mainager_port = 8080
 client_port = 8081
 raft_node_base_port = 8082
