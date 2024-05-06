@@ -381,11 +381,7 @@ class RaftNode:
         for i in range(self.commit_length + 1, len(self.log) + 1):
             if count_acks(self.ack_length, i) >= min_acks:
                 ready = i
-        print("Ready", ready)
-        print("Term", self.term_number)
-        print("Commit length", self.commit_length)
-        print("self.log[ready - 1]['term']", self.log[ready - 1]['term'])
-        print("Log length", len(self.log))
+
         # if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
         if ready > 0 and self.commit_length < len(self.log):
         # if ready > 0:

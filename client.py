@@ -8,7 +8,7 @@ import random
 class Client():
     def __init__(self):
         self.leader_id = 0
-        self.num_nodes = 2
+        self.num_nodes = 3
         self.tasks = []
         self.net = RPCManager(client_port, self.msg_callback)
         asyncio.run(self.start())
