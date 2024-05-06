@@ -17,12 +17,14 @@ def start_client():
     asyncio.run(Client())
 
 async def main(num_nodes):
-    elizabeth = PipeManager(num_nodes)
-    await elizabeth.start_piping()
+    pm = PipeManager(num_nodes)
+    await pm.start_piping()
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--num_nodes", type=int, default=2)
+    parser.add_argument("--num_nodes", type=int, default=3)
+    parser.add_argument("--interval", type=int, default=20)
+    parser.add_argument("--filepath", type=str, default='./testlog.txt')
     args = parser.parse_args()
 
     manager_process = Process(target=start_pipe_manager, args=(args.num_nodes,))
@@ -46,6 +48,5 @@ if __name__ == "__main__":
         p.join()
         asyncio.sleep(1)
 
-    
     manager_process.join()
 
