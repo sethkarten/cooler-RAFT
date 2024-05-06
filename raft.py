@@ -4,7 +4,7 @@ import json
 from rpc import RPCManager
 from utils import *
 import asyncio
-from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port
+from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port, TOTAL_NODES
 import random
 import os
 
@@ -394,11 +394,11 @@ class RaftNode:
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--id", type=int, default=0)
-    parser.add_argument("--num_nodes", type=int, default=2)
+    # parser.add_argument("--num_nodes", type=int, default=2)
     parser.add_argument("--interval", type=int, default=20)
     parser.add_argument("--filepath", type=str, default='./testlog.txt')
     args = parser.parse_args()
     node_info = {}
     node_info[args.id] = raft_node_base_port + args.id
 
-    n = RaftNode(args.id, node_info, random.randint(args.interval-5,args.interval+5), args.num_nodes, args.filepath)
+    n = RaftNode(args.id, node_info, random.randint(args.interval-5,args.interval+5), TOTAL_NODES, args.filepath)

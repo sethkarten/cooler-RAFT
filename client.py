@@ -1,6 +1,6 @@
 import asyncio
 from rpc import RPCManager
-from utils import client_port, Event
+from utils import client_port, Event, TOTAL_NODES
 import numpy as np
 import string
 import random
@@ -8,7 +8,7 @@ import random
 class Client():
     def __init__(self):
         self.leader_id = 0
-        self.num_nodes = 3
+        self.num_nodes = TOTAL_NODES
         self.tasks = []
         self.net = RPCManager(client_port, self.msg_callback)
         asyncio.run(self.start())
@@ -28,13 +28,17 @@ class Client():
         while True:
             await asyncio.sleep(np.random.randint(10,30))
             data = random.choice(string.ascii_letters)
-            msg = {
-                'destination': np.random.randint(self.num_nodes),
-                'flag': Event.Client,
-                'data': data
-            }
+            sent_successfully = False
             print("Sending", data)
-            await self.net.send_network_message(msg)
+            while not sent_successfully:
+                msg = {
+                    'id': -1,
+                    'destination': np.random.randint(self.num_nodes),
+                    'flag': Event.Client,
+                    'data': data
+                }
+                sent_successfully = await self.net.send_network_message(msg)
+            print('Sent successfully')
 
     # deprecated
     async def msg_callback(self, flag, msg):
