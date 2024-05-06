@@ -1,6 +1,7 @@
 
 from argparse import ArgumentParser
 import json
+import sys
 from rpc import RPCManager
 from utils import *
 import asyncio
@@ -56,6 +57,10 @@ class RaftNode:
             await asyncio.sleep(5) # Needs to be shorter than ElectionTimeout!
             # await self.event_logic(Event.ElectionTimeoutTest, None)
             # await self.event_logic(Event.ReplicationTimeout, None)
+
+    async def commit_suicide(self):
+        print('Goodbye Cruel World.')
+        sys.exit(1)
 
     async def logic_loop(self):
         await self.net.start_server()
@@ -114,6 +119,8 @@ class RaftNode:
                 self.print_msg(msg) 
             case Event.Client:
                 await self.process_client(msg)
+            case Event.Death:
+                await self.commit_suicide()
             case _:
                 raise ValueError
     

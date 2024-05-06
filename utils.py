@@ -19,6 +19,7 @@ class Event(IntEnum):
     ElectionTimeoutTest = 7
     Debug = 8
     Client = 9
+    Death = 10
 
 
 def get_last_log_term(log):
