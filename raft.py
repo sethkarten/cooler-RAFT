@@ -1,6 +1,7 @@
 
 from argparse import ArgumentParser
 import json
+import sys
 from rpc import RPCManager
 from utils import *
 import asyncio
@@ -52,6 +53,10 @@ class RaftNode:
         if self.replicationTimerCounter >= 5:
             await self.event_logic(Event.ReplicationTimeout, None) 
             self.replicationTimerCounter = 0
+
+    async def commit_suicide(self):
+        print('Goodbye Cruel World.')
+        sys.exit(1)
 
     async def logic_loop(self):
         await self.net.start_server()
@@ -110,6 +115,8 @@ class RaftNode:
                 self.print_msg(msg) 
             case Event.Client:
                 await self.process_client(msg)
+            case Event.Death:
+                await self.commit_suicide()
             case _:
                 raise ValueError
     
