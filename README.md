@@ -1,5 +1,5 @@
 NOT IMPLEMENTED:
 - If leader fails, load in log from persistent storage.
-- Test that log is being saved to persistent storage.
-- Replication Timeout. 
-- Follower isn't replicating Leader log.
+
+Notes:
+- Election Timeout needs to be much shorter than Replication Timeout or else system breaks. (too many elections -> term is never right + stuff gets written twice in logs, etc.)
