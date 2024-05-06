@@ -326,11 +326,7 @@ class RaftNode:
             (2) Otherwise, send message to Leader. 
         """
         if self.role == 'leader':
-            log_entry = {
-                'term': self.term, 
-                'entry': payload
-            }
-            self.log.append(log_entry)
+            self.log.append(payload)
             self.ack_length[self.id] = len(self.log)
             await self.replicate_log()
 
