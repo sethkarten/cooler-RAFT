@@ -375,9 +375,9 @@ class RaftNode:
         (2) If there are new entries to commit, commit to log. 
         """
         print("COMMITTING LOG", self.log)
-        min_acks = (len(self.peers) + 1) // 2
+        min_acks = (len(self.peers) + 1) // 2 - 1
         ready = 0
-
+        print(f'ack list {self.ack_length}\n min acks {min_acks}')
         for i in range(self.commit_length + 1, len(self.log) + 1):
             if count_acks(self.ack_length, i) >= min_acks:
                 ready = i
