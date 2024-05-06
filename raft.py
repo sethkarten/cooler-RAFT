@@ -75,8 +75,14 @@ class RaftNode:
         print('MSG RECEIVED', msg)
 
     async def process_client(self, msg):
-        data = msg['data']
-        self.log.append(data)
+        # if leader
+        if self.leader == self.id:
+            data = msg['data']
+            self.log.append(data)
+        else:
+            # forward message to the leader
+            msg['destination'] = self.leader
+            await self.net.send_network_message(msg)
 
     async def event_logic(self, input, msg):
         # print('event enum received', input)

@@ -7,6 +7,7 @@ import string
 class Client():
     def __init__(self):
         self.leader_id = 0
+        self.num_nodes = 2
         self.net = RPCManager(self.msg_callback, client_port)
         asyncio.run(self.start())
     
@@ -22,12 +23,13 @@ class Client():
             asyncio.sleep(np.random.randint(10,30))
             data = np.random.choice(string.ascii_letters)
             msg = {
-                'destination': self.leader_id,
+                'destination': np.random.randint(self.num_nodes),
                 'flag': Event.Client,
                 'data': data
             }
             self.net.send_network_message(msg)
 
+    # deprecated
     async def msg_callback(self, flag, msg):
         self.leader_id = msg['leader']
     
