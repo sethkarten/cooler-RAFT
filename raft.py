@@ -18,7 +18,7 @@ class RaftNode:
         self.role = role
         self.leader = leader
         self.votes_total = votes_total
-        self.log = log if log is not None else [] # TODO: load from persistent storage
+        self.log = log if log is not None else [] 
         self.commit_length = commit_length # How many log entries have been committed
         self.sent_length = {peer_id: 0 for peer_id in self.peers} # Len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
