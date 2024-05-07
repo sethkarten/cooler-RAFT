@@ -15,7 +15,7 @@ def start_node(id, node_info, interval, filepath):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        node = RaftNode(id, node_info, random.randint(interval-5, interval+5), TOTAL_NODES, filepath)
+        node = RaftNode(id, node_info, random.randint(0.9*interval, 1.1*interval), TOTAL_NODES, filepath)
         loop.run_until_complete(node.main_loop())
     except Exception as e:
         print(f"Exception in node {id}: {e}")

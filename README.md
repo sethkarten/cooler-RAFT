@@ -36,8 +36,8 @@ timestamp writes,
 timestamps of elections,
 failure timestamp
 
-number of nodes
-network latency
-vary election timeout
-number of failures, timeout between failures
-- only leaders go down for workload test
+number of nodes:    3, 10, 30
+network latency:    0, 2, 8
+vary election timeout:  1, 10, 40, 100
+number of failures: 1, 4, 10, 14 up to max for nodes
+timeout between failures:   0, 2, 8, 32

@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 import sys
 
 class PipeManager(): 
-    def __init__(self, num_nodes, filepath):
+    def __init__(self, num_nodes, filepath, interval=32, max_failures=1, latency=0):
         self.stdout = open(filepath + "Pipe_stdout.txt", "w+")
         sys.stdout = self.stdout
         self.node_info = []
@@ -18,6 +18,9 @@ class PipeManager():
         self.failure_nodes = []
         self.leader = -1
         self.filepath = filepath
+        self.interval = interval
+        self.max_failures = max_failures
+        self.latency = latency
 
     async def msg_callback(self, flag, msg):
         sender = int(msg['id'])
@@ -36,6 +39,8 @@ class PipeManager():
         # print('receiver', receiver)
         port = raft_node_base_port + receiver
         # pipe to other node
+        # add network latency
+        await asyncio.sleep(self.latency)
         await self.net.send_individual_message(msg, port)
 
     async def stdout_flush(self):
@@ -44,8 +49,8 @@ class PipeManager():
             self.stdout.flush()
 
     async def failure_timer(self):
-        while len(self.failure_nodes) < get_majority(self.failure_nodes):
-            await asyncio.sleep(20)
+        while len(self.failure_nodes) < min(get_majority(self.failure_nodes), self.max_failures):
+            await asyncio.sleep(self.interval)
             if self.leader == -1 or self.leader in self.failure_nodes:
                 continue
             # failure_node = np.random.randint(0,TOTAL_NODES)

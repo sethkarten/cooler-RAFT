@@ -48,7 +48,7 @@ class RaftNode:
     
     async def replication_timer(self):
         while True:
-            await asyncio.sleep(5)
+            await asyncio.sleep(self.interval/4.)
             await self.event_logic(Event.ReplicationTimeout, None) 
 
     async def stdout_flush(self):
