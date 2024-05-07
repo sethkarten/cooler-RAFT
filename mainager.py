@@ -24,11 +24,22 @@ class PipeManager():
         self.max_failures = max_failures
         self.latency = latency
         self.raft_node_base_port = raft_node_base_port
+        print(f'manager port {mainager_port}')
+        print(f'raft port {raft_node_base_port}')
+        print(f'interval {self.interval}')
+        print(f'max_failures {self.max_failures}')
+        print(f'latency {self.latency}')
+
 
     async def msg_callback(self, flag, msg):
         sender = int(msg['id'])
         if sender in self.failure_nodes:
             return False
+        try:
+            receiver = int(msg['destination'])
+        except TypeError:
+            print('setting to 0', msg, file=sys.stderr)
+            msg['destination'] = 0
         receiver = int(msg['destination'])
         if receiver == -2:
             self.leader = sender

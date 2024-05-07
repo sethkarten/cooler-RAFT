@@ -32,6 +32,7 @@ class RaftNode:
         self.interval = interval
         print("Randomly assigned election timeout", self.interval)
         self.port = node_info[id]
+        print(f'manager port {mainager_port}')
         self.net = RPCManager(self.port, self.event_logic, mainager_port)
         self.log_file_path = log_file_path
         self.start_raft_node()
@@ -94,6 +95,8 @@ class RaftNode:
             self.log.append({'term': self.term_number, 'entry': data})
         else:
             # forward message to the leader
+            while self.leader == None:
+                await asyncio.sleep(1)
             msg['destination'] = self.leader
             await self.net.send_network_message(msg)
 

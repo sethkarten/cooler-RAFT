@@ -7,6 +7,8 @@ class RPCManager:
         self.port = port
         self.msg_callback = msg_callback
         self.mainager_port = mainager_port
+        print(f'manager port {mainager_port}')
+
 
     async def start_server(self):
         try:
@@ -29,6 +31,11 @@ class RPCManager:
         try:
             _, writer = await self.open_connection(self.mainager_port)
             serialized_msg = json.dumps(msg).encode('utf-8')
+            msg['id'] = int(msg['id'])
+            try:
+                msg['destination'] = int(msg['destination'])
+            except TypeError:
+                msg['destination'] = 0
             writer.write(serialized_msg)
             await writer.drain()
             return True

@@ -14,10 +14,13 @@ class Client():
         sys.stderr = self.stderr
         self.leader_id = 0
         self.num_nodes = num_nodes
+        print(f'Num nodes {self.num_nodes}')
         self.tasks = []
         self.net = RPCManager(client_port, self.msg_callback, mainager_port)
         self.interval = interval
         asyncio.run(self.start())
+        print(f'manager port {mainager_port}')
+        print(f'client port {client_port}')
     
     async def start(self):
         await self.net.start_server()
@@ -44,9 +47,12 @@ class Client():
             sent_successfully = False
             print("Sending", data)
             while not sent_successfully:
+                dst = random.randint(0, self.num_nodes)
+                print(f'send to {dst}')
+                assert dst is not None
                 msg = {
                     'id': -1,
-                    'destination': np.random.randint(self.num_nodes),
+                    'destination': dst,
                     'flag': Event.Client,
                     'data': data
                 }
