@@ -9,7 +9,11 @@ class RPCManager:
         self.mainager_port = mainager_port
 
     async def start_server(self):
-        self.server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', self.port)
+        try:
+            self.server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', self.port)
+        except OSError:
+            self.port += 5
+            self.start_server()
 
     async def open_connection(self, port):
         # Wait for 30 seconds, then raise TimeoutError

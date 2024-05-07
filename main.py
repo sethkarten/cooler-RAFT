@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_failures", type=int, default=1)
     parser.add_argument("--failure_interval", type=int, default=1)
     parser.add_argument("--base_port", type=int, default=9000)
+    parser.add_argument("--name", type=str, default='')
     args = parser.parse_args()
 
     manager_port = args.base_port
@@ -96,10 +97,14 @@ if __name__ == "__main__":
     processes.append(client_process)
 
     # sleep for 10 minutes, then kill everyone
-    time.sleep(10*60)
+    start = time.time()
+    while time.time() - start < 10*60:
+        time.sleep(10)
     for p in processes:
         p.kill()
     manager_process.kill()
+
+    print(f'DONE {args.name} DONE')
 
     # for p in processes:
     #     p.join()
