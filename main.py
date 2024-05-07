@@ -22,11 +22,11 @@ def start_node(id, node_info, interval, filepath):
     finally:
         loop.close()
 
-def start_pipe_manager(num_nodes):
+def start_pipe_manager(num_nodes, filepath):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(main(num_nodes))
+        loop.run_until_complete(main(num_nodes, filepath))
     finally:
         loop.close()
 
@@ -39,8 +39,8 @@ def start_client():
     finally:
         loop.close()
 
-async def main(num_nodes):
-    pm = PipeManager(num_nodes)
+async def main(num_nodes, filepath):
+    pm = PipeManager(num_nodes, filepath)
     await pm.start_piping()
 
 if __name__ == "__main__":
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--filepath", type=str, default=DEFAULT_DIR)
     args = parser.parse_args()
 
-    manager_process = Process(target=start_pipe_manager, args=(args.num_nodes,))
+    manager_process = Process(target=start_pipe_manager, args=(args.num_nodes, args.filepath))
     manager_process.start()
 
     node_info = {}

@@ -1,6 +1,5 @@
 
 from argparse import ArgumentParser
-import json
 import sys
 from rpc import RPCManager
 from utils import *
@@ -21,7 +20,7 @@ class RaftNode:
         self.role = role
         self.leader = leader
         self.votes_total = votes_total
-        self.log = log if log is not None else [] # TODO: load from persistent storage
+        self.log = log if log is not None else [] 
         self.commit_length = commit_length # How many log entries have been committed
         self.sent_length = {peer_id: 0 for peer_id in self.peers} # Len of log that leader believes each follower has
         self.ack_length = {peer_id: 0 for peer_id in self.peers}
@@ -138,7 +137,7 @@ class RaftNode:
             return
         
         print("STARTING ELECTION for term", self.term_number)
-        commit_to_file("election_start", self.log_file_path + "election_log_timestamped.txt", self.id, "election_timestamp")
+        commit_to_file("election_start", self.log_file_path + "allinfo.txt", self.id, "allinfo")
 
         self.role = 'candidate'
         self.voted_id = self.id
@@ -165,7 +164,7 @@ class RaftNode:
             resp['destination'] = peer_id
             await self.net.send_network_message(resp)
         self.electionTimerCounter = 0
-        commit_to_file("election_end", self.log_file_path + "election_log_timestamped.txt", self.id, "election_timestamp")
+        commit_to_file("election_end", self.log_file_path + "allinfo.txt", self.id, "allinfo")
     
     async def replicate(self, peer_id):
         """
@@ -394,7 +393,7 @@ class RaftNode:
             for i in range(self.commit_length, ready):
                 commit_to_file(self.log[i], self.log_file_path + "commit_log.txt", self.id, "commitlog") 
                 commit_to_file(self.log[i], self.log_file_path + "timestamped.txt", self.id, "log_timestamp")
-                commit_to_file("logcommit", self.log_file_path + "election_log_timestamped.txt", self.id, "election_timestamp")  
+                commit_to_file("logcommit", self.log_file_path + "allinfo.txt", self.id, "allinfo")  
                 self.commit_length += 1
             # self.commit_length = ready
 
