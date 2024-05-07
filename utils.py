@@ -74,7 +74,7 @@ def commit_to_file(entry, filepath, id, flag):
         with open(filepath, 'a') as f:
             f.write(json.dumps(entry['entry']) + '\n')
     
-    elif flag == "election_timestamp":
+    elif flag == "allinfo":
         file_exists = os.path.exists(filepath)
         with open(filepath, 'a', newline='') as csvfile:
             fieldnames = ['timestamp', 'event_type', 'node']

@@ -50,7 +50,7 @@ class PipeManager():
             }
             await self.msg_callback(None, msg)
             self.failure_nodes.append(failure_node)
-            commit_to_file("nodefailure", self.filepath + "_election_log_timestamped.txt", failure_node, "election_timestamp")
+            commit_to_file("nodefailure", self.filepath + "allinfo.txt", failure_node, "allinfo")
 
     async def start_piping(self):
         await self.net.start_server()

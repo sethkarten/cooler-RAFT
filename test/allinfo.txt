@@ -1,0 +1,9 @@
+timestamp,event_type,node
+1715044006.294954,election_start,2
+1715044006.298135,election_end,2
+1715044011.21744,nodefailure,2
+1715044025.3448188,election_start,1
+1715044025.3509,election_end,1
+1715044031.353125,logcommit,1
+1715044056.372855,logcommit,1
+1715044066.385565,logcommit,1
