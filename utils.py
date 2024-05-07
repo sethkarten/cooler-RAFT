@@ -3,6 +3,7 @@ import numpy as np
 import os
 import time
 import csv
+import json
 
 # total number of raft nodes
 TOTAL_NODES = 3

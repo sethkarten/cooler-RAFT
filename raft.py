@@ -1,6 +1,5 @@
 
 from argparse import ArgumentParser
-import json
 import sys
 from rpc import RPCManager
 from utils import *

@@ -2,17 +2,19 @@ import json
 import numpy as np
 import asyncio
 from rpc import RPCManager
-from utils import Event, mainager_port, raft_node_base_port, TOTAL_NODES, get_majority
+from utils import *
 import time
+from argparse import ArgumentParser
 
 class PipeManager(): 
-    def __init__(self, num_nodes):
+    def __init__(self, num_nodes, filepath):
         self.node_info = []
         self.tasks = []
         self.num_nodes = num_nodes
         self.net = RPCManager(mainager_port, self.msg_callback)
         self.failure_nodes = []
         self.leader = -1
+        self.filepath = filepath
 
     async def msg_callback(self, flag, msg):
         sender = int(msg['id'])
@@ -48,6 +50,7 @@ class PipeManager():
             }
             await self.msg_callback(None, msg)
             self.failure_nodes.append(failure_node)
+            commit_to_file("nodefailure", self.filepath + "_election_log_timestamped.txt", failure_node, "election_timestamp")
 
     async def start_piping(self):
         await self.net.start_server()
@@ -59,10 +62,13 @@ class PipeManager():
             self.tasks.append(asyncio.create_task(self.failure_timer()))
             await asyncio.gather(*self.tasks)
 
-async def main(num_nodes):
-    pm = PipeManager(num_nodes)
+async def main(num_nodes, filepath):
+    pm = PipeManager(num_nodes, filepath)
     await pm.start_piping()
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
     num_nodes = TOTAL_NODES
-    asyncio.get_event_loop().run_until_complete(main(num_nodes))
+    parser.add_argument("--filepath", type=str, default='./test')
+    args = parser.parse_args()
+    asyncio.get_event_loop().run_until_complete(main(num_nodes, args.filepath))
