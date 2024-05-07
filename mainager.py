@@ -51,8 +51,8 @@ class PipeManager():
             await asyncio.gather(*self.tasks)
 
 async def main(num_nodes):
-    elizabeth = PipeManager(num_nodes)
-    await elizabeth.start_piping()
+    pm = PipeManager(num_nodes)
+    await pm.start_piping()
 
 if __name__ == '__main__':
     num_nodes = TOTAL_NODES
