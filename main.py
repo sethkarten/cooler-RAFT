@@ -29,11 +29,11 @@ def start_pipe_manager(num_nodes, filepath, interval, max_failures, latency, man
     finally:
         loop.close()
 
-def start_client(filepath, manager_port, client_port, raft_port):
+def start_client(filepath, manager_port, client_port, raft_port, client_interval):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        client = Client(filepath, client_port)
+        client = Client(filepath, client_port, client_interval)
         loop.run_until_complete(client.run())
     finally:
         loop.close()
@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--num_nodes", type=int, default=3)
     parser.add_argument("--interval", type=int, default=20)
+    parser.add_argument("--client_interval", type=int, default=20)
     parser.add_argument("--filepath", type=str, default=DEFAULT_DIR)
     parser.add_argument("--latency", type=int, default=8)
     parser.add_argument("--max_failures", type=int, default=1)
@@ -87,7 +88,8 @@ if __name__ == "__main__":
     client_process = Process(target=start_client, args=(args.filepath,
                                                         manager_port,
                                                         client_port,
-                                                        raft_port
+                                                        raft_port,
+                                                        args.client_interval
                                                         ))
     client_process.start()
     processes.append(client_process)

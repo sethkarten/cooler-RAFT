@@ -7,7 +7,7 @@ import sys
 import random
 
 class Client():
-    def __init__(self, log_file_path, client_port):
+    def __init__(self, log_file_path, client_port, interval):
         self.stdout = open(log_file_path + "client_stdout.txt", "w+")
         sys.stdout = self.stdout
         self.stderr = open(log_file_path + "client_stderr.txt", "w+")
@@ -16,6 +16,7 @@ class Client():
         self.num_nodes = TOTAL_NODES
         self.tasks = []
         self.net = RPCManager(client_port, self.msg_callback)
+        self.interval = interval
         asyncio.run(self.start())
     
     async def start(self):
@@ -38,7 +39,7 @@ class Client():
 
     async def logic_loop(self):
         while True:
-            await asyncio.sleep(np.random.randint(10,30))
+            await asyncio.sleep(np.random.randint(.9*self.interval,1.1*self.interval))
             data = random.choice(string.ascii_letters)
             sent_successfully = False
             print("Sending", data)
