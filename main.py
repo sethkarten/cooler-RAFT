@@ -22,25 +22,25 @@ def start_node(id, node_info, interval, filepath):
     finally:
         loop.close()
 
-def start_pipe_manager(num_nodes, filepath):
+def start_pipe_manager(num_nodes, filepath, interval, max_failures, latency):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(main(num_nodes, filepath))
+        loop.run_until_complete(main(num_nodes, filepath, interval, max_failures, latency))
     finally:
         loop.close()
 
-def start_client():
+def start_client(filepath):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        client = Client()
+        client = Client(filepath)
         loop.run_until_complete(client.run())
     finally:
         loop.close()
 
-async def main(num_nodes, filepath):
-    pm = PipeManager(num_nodes, filepath)
+async def main(num_nodes, filepath, interval, max_failures, latency):
+    pm = PipeManager(num_nodes, filepath, interval, max_failures, latency)
     await pm.start_piping()
 
 if __name__ == "__main__":
@@ -48,9 +48,12 @@ if __name__ == "__main__":
     parser.add_argument("--num_nodes", type=int, default=3)
     parser.add_argument("--interval", type=int, default=20)
     parser.add_argument("--filepath", type=str, default=DEFAULT_DIR)
+    parser.add_argument("--latency", type=int, default=8)
+    parser.add_argument("--max_failures", type=int, default=1)
+    parser.add_argument("--failure_interval", type=int, default=1)
     args = parser.parse_args()
 
-    manager_process = Process(target=start_pipe_manager, args=(args.num_nodes, args.filepath))
+    manager_process = Process(target=start_pipe_manager, args=(args.num_nodes, args.filepath,  args.failure_interval, args.max_failures, args.latency))
     manager_process.start()
 
     node_info = {}
@@ -63,7 +66,7 @@ if __name__ == "__main__":
         p.start()
         processes.append(p)
 
-    client_process = Process(target=start_client)
+    client_process = Process(target=start_client, args=(args.filepath,))
     client_process.start()
     processes.append(client_process)
 

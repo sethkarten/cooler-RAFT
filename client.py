@@ -4,6 +4,7 @@ from utils import client_port, Event, TOTAL_NODES, DEFAULT_DIR
 import numpy as np
 import string
 import sys
+import random
 
 class Client():
     def __init__(self, log_file_path):
@@ -35,7 +36,7 @@ class Client():
     async def logic_loop(self):
         while True:
             await asyncio.sleep(np.random.randint(10,30))
-            data = np.random.choice(string.ascii_letters)
+            data = random.choice(string.ascii_letters)
             sent_successfully = False
             print("Sending", data)
             while not sent_successfully:
