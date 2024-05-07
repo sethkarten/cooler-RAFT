@@ -8,6 +8,7 @@ import asyncio
 from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port, TOTAL_NODES
 import random
 import os
+import time
 
 class RaftNode:
     def __init__(self, id, node_info, interval, num_nodes, log_file_path, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
@@ -159,7 +160,10 @@ class RaftNode:
         self.electionTimerCounter = 0
     
     async def replicate(self, peer_id):
-        # Leader sends log entries after sent_length[follower]
+        """
+        Leader sends log entries after sent_length[follower]
+        """
+
         print("REPLICATING LOG FROM ", peer_id)
         prefix = self.sent_length[peer_id]
         suffix = self.log[prefix:]
