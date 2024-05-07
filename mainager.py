@@ -35,7 +35,7 @@ class PipeManager():
             return
         if sender == -1:
             while int(msg['destination']) in self.failure_nodes:
-                msg['destination'] = np.random.randint(0, TOTAL_NODES)
+                msg['destination'] = np.random.randint(0, self.num_nodes)
                 receiver = msg['destination']
         # print(f'Received msg from node {sender}. Forwarding to {receiver}')
         # print(msg)

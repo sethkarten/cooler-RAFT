@@ -14,7 +14,7 @@ def start_node(id, node_info, interval, filepath, manager_port, client_port, raf
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        node = RaftNode(id, node_info, random.randint(0.9*interval, 1.1*interval), TOTAL_NODES, filepath, raft_port)
+        node = RaftNode(id, node_info, random.randint(0.9*interval, 1.1*interval), TOTAL_NODES, filepath)
         loop.run_until_complete(node.main_loop())
     except Exception as e:
         print(f"Exception in node {id}: {e}")
@@ -29,11 +29,11 @@ def start_pipe_manager(num_nodes, filepath, interval, max_failures, latency, man
     finally:
         loop.close()
 
-def start_client(filepath, manager_port, client_port, raft_port, client_interval):
+def start_client(filepath, manager_port, client_port, raft_port, client_interval, num_nodes):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        client = Client(filepath, client_port, client_interval)
+        client = Client(filepath, client_port, client_interval, num_nodes)
         loop.run_until_complete(client.run())
     finally:
         loop.close()
@@ -89,7 +89,8 @@ if __name__ == "__main__":
                                                         manager_port,
                                                         client_port,
                                                         raft_port,
-                                                        args.client_interval
+                                                        args.client_interval,
+                                                        args.num_nodes
                                                         ))
     client_process.start()
     processes.append(client_process)

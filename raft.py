@@ -8,14 +8,14 @@ from utils import get_last_log_term, get_majority, count_acks, TOTAL_NODES, DEFA
 import numpy.random as random
 
 class RaftNode:
-    def __init__(self, id, node_info, interval, num_nodes, log_file_path, raft_node_base_port, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
+    def __init__(self, id, node_info, interval, num_nodes, log_file_path, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.stdout = open(log_file_path + f"Raft_stdout_{id}.txt", "w+")
         self.stderr = open(log_file_path + f"Raft_stderr_{id}.txt", "w+")
         sys.stdout = self.stdout
         sys.stderr = self.stderr
         self.id = id
         self.num_nodes = num_nodes
-        self.peers = {i: raft_node_base_port + i for i in range(num_nodes)}
+        self.peers = {i: node_info[i] for i in range(num_nodes)}
         print("Peers: ", self.peers) # Includes self.id and is ordered by ID
         self.term_number = term_number
         self.voted_id = voted_id
