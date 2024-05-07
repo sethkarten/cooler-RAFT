@@ -31,3 +31,13 @@ To-Do:
 1. Write a script to output client logs + Raft committed log and compare. 
 2. Evaluate throughput. 
 3. Write up. 
+
+timestamp writes,
+timestamps of elections,
+failure timestamp
+
+number of nodes
+network latency
+vary election timeout
+number of failures, timeout between failures
+- only leaders go down for workload test
