@@ -1,10 +1,16 @@
 #!/bin/bash
 
-num_nodes=(3)
-latencies=(0)
-timeouts=(1)
-max_failures=(1)  
-failure_intervals=(0)
+# num_nodes=(3)
+# latencies=(0)
+# timeouts=(1)
+# max_failures=(1)  
+# failure_intervals=(0)
+
+num_nodes=(3 10 30)
+latencies=(0 2 8)
+timeouts=(1 10 40 100)
+max_failures=(1 4 10 14) 
+failure_intervals=(0 2 8 32)
 
 output_dir="./outputs/experiment_logs"
 mkdir -p $output_dir
