@@ -1,11 +1,12 @@
 import asyncio
 import json
-from utils import Event, mainager_port
+from utils import Event
 
 class RPCManager:
-    def __init__(self, port, msg_callback):
+    def __init__(self, port, msg_callback, mainager_port):
         self.port = port
         self.msg_callback = msg_callback
+        self.mainager_port = mainager_port
 
     async def start_server(self):
         self.server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', self.port)
@@ -22,7 +23,7 @@ class RPCManager:
     async def send_network_message(self, msg):
         assert self.port != -1
         try:
-            _, writer = await self.open_connection(mainager_port)
+            _, writer = await self.open_connection(self.mainager_port)
             serialized_msg = json.dumps(msg).encode('utf-8')
             writer.write(serialized_msg)
             await writer.drain()

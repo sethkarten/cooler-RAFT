@@ -4,13 +4,15 @@ import sys
 from rpc import RPCManager
 from utils import *
 import asyncio
-from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port, TOTAL_NODES, DEFAULT_DIR
+from utils import get_last_log_term, get_majority, count_acks, TOTAL_NODES, DEFAULT_DIR
 import numpy.random as random
 
 class RaftNode:
-    def __init__(self, id, node_info, interval, num_nodes, log_file_path, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
+    def __init__(self, id, node_info, interval, num_nodes, log_file_path, raft_node_base_port, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.stdout = open(log_file_path + f"Raft_stdout_{id}.txt", "w+")
+        self.stderr = open(log_file_path + f"Raft_stderr_{id}.txt", "w+")
         sys.stdout = self.stdout
+        sys.stderr = self.stderr
         self.id = id
         self.num_nodes = num_nodes
         self.peers = {i: raft_node_base_port + i for i in range(num_nodes)}
@@ -55,6 +57,7 @@ class RaftNode:
         while True:
             await asyncio.sleep(5)
             self.stdout.flush()
+            self.stderr.flush()
 
     async def commit_suicide(self):
         print('Goodbye Cruel World.')
@@ -404,8 +407,9 @@ if __name__ == '__main__':
     # parser.add_argument("--num_nodes", type=int, default=2)
     parser.add_argument("--interval", type=int, default=20)
     parser.add_argument("--filepath", type=str, default=DEFAULT_DIR)
+    parser.add_argument("--port", type=str)
     args = parser.parse_args()
     node_info = {}
-    node_info[args.id] = raft_node_base_port + args.id
+    node_info[args.id] = args.port + args.id
 
     n = RaftNode(args.id, node_info, random.randint(args.interval-5,args.interval+5), TOTAL_NODES, args.filepath)

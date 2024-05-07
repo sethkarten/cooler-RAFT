@@ -9,9 +9,9 @@ import json
 TOTAL_NODES = 3
 DEFAULT_DIR = './outputs/default/'
 
-mainager_port = 8080
-client_port = 8081
-raft_node_base_port = 8082
+# mainager_port = 8080
+# client_port = 8081
+# raft_node_base_port = 8082
 
 class Event(IntEnum):
     ElectionTimeout = 0

@@ -8,9 +8,11 @@ from argparse import ArgumentParser
 import sys
 
 class PipeManager(): 
-    def __init__(self, num_nodes, filepath, interval=32, max_failures=1, latency=0):
+    def __init__(self, num_nodes, filepath, mainager_port, raft_node_base_port, interval=32, max_failures=1, latency=0):
         self.stdout = open(filepath + "Pipe_stdout.txt", "w+")
         sys.stdout = self.stdout
+        self.stderr = open(filepath + "Pipe_stderr.txt", "w+")
+        sys.stderr = self.stderr
         self.node_info = []
         self.tasks = []
         self.num_nodes = num_nodes
@@ -21,6 +23,7 @@ class PipeManager():
         self.interval = interval
         self.max_failures = max_failures
         self.latency = latency
+        self.raft_node_base_port = raft_node_base_port
 
     async def msg_callback(self, flag, msg):
         sender = int(msg['id'])
@@ -37,7 +40,7 @@ class PipeManager():
         # print(f'Received msg from node {sender}. Forwarding to {receiver}')
         # print(msg)
         # print('receiver', receiver)
-        port = raft_node_base_port + receiver
+        port = self.raft_node_base_port + receiver
         # pipe to other node
         # add network latency
         await asyncio.sleep(self.latency)
@@ -47,6 +50,7 @@ class PipeManager():
         while True:
             await asyncio.sleep(5)
             self.stdout.flush()
+            self.stderr.flush()
 
     async def failure_timer(self):
         while len(self.failure_nodes) < min(get_majority(self.failure_nodes), self.max_failures):

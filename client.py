@@ -1,15 +1,17 @@
 import asyncio
 from rpc import RPCManager
-from utils import client_port, Event, TOTAL_NODES, DEFAULT_DIR
+from utils import Event, TOTAL_NODES, DEFAULT_DIR
 import numpy as np
 import string
 import sys
 import random
 
 class Client():
-    def __init__(self, log_file_path):
+    def __init__(self, log_file_path, client_port):
         self.stdout = open(log_file_path + "client_stdout.txt", "w+")
         sys.stdout = self.stdout
+        self.stderr = open(log_file_path + "client_stderr.txt", "w+")
+        sys.stderr = self.stderr
         self.leader_id = 0
         self.num_nodes = TOTAL_NODES
         self.tasks = []
@@ -32,6 +34,7 @@ class Client():
         while True:
             await asyncio.sleep(5)
             self.stdout.flush()
+            self.stderr.flush()
 
     async def logic_loop(self):
         while True:
