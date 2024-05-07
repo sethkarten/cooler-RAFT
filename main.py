@@ -10,7 +10,6 @@ from raft import RaftNode
 from client import Client
 from utils import raft_node_base_port, TOTAL_NODES, DEFAULT_DIR
 
-
 def start_node(id, node_info, interval, filepath):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
