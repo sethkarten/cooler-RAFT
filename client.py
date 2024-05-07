@@ -7,7 +7,7 @@ import sys
 import random
 
 class Client():
-    def __init__(self, log_file_path, client_port, interval, num_nodes=TOTAL_NODES):
+    def __init__(self, log_file_path, client_port, interval, mainager_port, num_nodes=TOTAL_NODES):
         self.stdout = open(log_file_path + "client_stdout.txt", "w+")
         sys.stdout = self.stdout
         self.stderr = open(log_file_path + "client_stderr.txt", "w+")
@@ -15,7 +15,7 @@ class Client():
         self.leader_id = 0
         self.num_nodes = num_nodes
         self.tasks = []
-        self.net = RPCManager(client_port, self.msg_callback)
+        self.net = RPCManager(client_port, self.msg_callback, mainager_port)
         self.interval = interval
         asyncio.run(self.start())
     

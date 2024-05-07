@@ -8,7 +8,7 @@ from utils import get_last_log_term, get_majority, count_acks, TOTAL_NODES, DEFA
 import numpy.random as random
 
 class RaftNode:
-    def __init__(self, id, node_info, interval, num_nodes, log_file_path, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
+    def __init__(self, id, node_info, interval, num_nodes, log_file_path, mainager_port, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
         self.stdout = open(log_file_path + f"Raft_stdout_{id}.txt", "w+")
         self.stderr = open(log_file_path + f"Raft_stderr_{id}.txt", "w+")
         sys.stdout = self.stdout
@@ -32,7 +32,7 @@ class RaftNode:
         self.interval = interval
         print("Randomly assigned election timeout", self.interval)
         self.port = node_info[id]
-        self.net = RPCManager(self.port, self.event_logic)
+        self.net = RPCManager(self.port, self.event_logic, mainager_port)
         self.log_file_path = log_file_path
         self.start_raft_node()
 

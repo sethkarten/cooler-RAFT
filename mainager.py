@@ -16,7 +16,7 @@ class PipeManager():
         self.node_info = []
         self.tasks = []
         self.num_nodes = num_nodes
-        self.net = RPCManager(mainager_port, self.msg_callback)
+        self.net = RPCManager(mainager_port, self.msg_callback, mainager_port)
         self.failure_nodes = []
         self.leader = -1
         self.filepath = filepath
