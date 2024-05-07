@@ -7,6 +7,7 @@ import json
 
 # total number of raft nodes
 TOTAL_NODES = 3
+DEFAULT_DIR = './outputs/default/'
 
 mainager_port = 8080
 client_port = 8081

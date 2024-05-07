@@ -1,12 +1,14 @@
 import asyncio
 from rpc import RPCManager
-from utils import client_port, Event, TOTAL_NODES
+from utils import client_port, Event, TOTAL_NODES, DEFAULT_DIR
 import numpy as np
 import string
-import random
+import sys
 
 class Client():
-    def __init__(self):
+    def __init__(self, log_file_path):
+        self.stdout = open(log_file_path + "client_stdout.txt", "w+")
+        sys.stdout = self.stdout
         self.leader_id = 0
         self.num_nodes = TOTAL_NODES
         self.tasks = []
@@ -22,12 +24,18 @@ class Client():
         async with self.net.server:
             self.tasks.append(asyncio.create_task(self.net.server.serve_forever()))
             self.tasks.append(asyncio.create_task(self.logic_loop()))
+            self.tasks.append(asyncio.create_task(self.stdout_flush()))
             await asyncio.gather(*self.tasks)
     
+    async def stdout_flush(self):
+        while True:
+            await asyncio.sleep(5)
+            self.stdout.flush()
+
     async def logic_loop(self):
         while True:
             await asyncio.sleep(np.random.randint(10,30))
-            data = random.choice(string.ascii_letters)
+            data = np.random.choice(string.ascii_letters)
             sent_successfully = False
             print("Sending", data)
             while not sent_successfully:
@@ -46,4 +54,4 @@ class Client():
         self.leader_id = msg.get('leader', 0)
     
 if __name__ == '__main__':
-    client = Client()
+    client = Client(DEFAULT_DIR)

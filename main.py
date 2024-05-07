@@ -1,14 +1,14 @@
 from multiprocessing import Process
 import asyncio
 import time
-import random
+import numpy.random as random
 import sys
 from argparse import ArgumentParser
 
 from mainager import PipeManager
 from raft import RaftNode
 from client import Client
-from utils import raft_node_base_port, TOTAL_NODES
+from utils import raft_node_base_port, TOTAL_NODES, DEFAULT_DIR
 
 
 def start_node(id, node_info, interval, filepath):
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--num_nodes", type=int, default=3)
     parser.add_argument("--interval", type=int, default=20)
-    parser.add_argument("--filepath", type=str, default='./test/')
+    parser.add_argument("--filepath", type=str, default=DEFAULT_DIR)
     args = parser.parse_args()
 
     manager_process = Process(target=start_pipe_manager, args=(args.num_nodes,))

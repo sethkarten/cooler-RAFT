@@ -5,11 +5,13 @@ import sys
 from rpc import RPCManager
 from utils import *
 import asyncio
-from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port, TOTAL_NODES
-import random
+from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port, TOTAL_NODES, DEFAULT_DIR
+import numpy.random as random
 
 class RaftNode:
     def __init__(self, id, node_info, interval, num_nodes, log_file_path, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
+        self.stdout = open(log_file_path + f"Raft_stdout_{id}.txt", "w+")
+        sys.stdout = self.stdout
         self.id = id
         self.num_nodes = num_nodes
         self.peers = {i: raft_node_base_port + i for i in range(num_nodes)}
@@ -50,6 +52,11 @@ class RaftNode:
             await asyncio.sleep(5)
             await self.event_logic(Event.ReplicationTimeout, None) 
 
+    async def stdout_flush(self):
+        while True:
+            await asyncio.sleep(5)
+            self.stdout.flush()
+
     async def commit_suicide(self):
         print('Goodbye Cruel World.')
         sys.exit(1)
@@ -63,7 +70,8 @@ class RaftNode:
             task1 = asyncio.create_task(self.election_timer())
             task2 = asyncio.create_task(self.replication_timer())
             task3 = asyncio.create_task(self.net.server.serve_forever())
-            await asyncio.gather(task1, task2, task3)   # <--- beautiful 😭
+            task4 = asyncio.create_task(self.stdout_flush())
+            await asyncio.gather(task1, task2, task3, task4)   # <--- beautiful 😭
 
     async def test_msg(self, msg):
         msg_data = {
@@ -396,7 +404,7 @@ if __name__ == '__main__':
     parser.add_argument("--id", type=int, default=0)
     # parser.add_argument("--num_nodes", type=int, default=2)
     parser.add_argument("--interval", type=int, default=20)
-    parser.add_argument("--filepath", type=str, default='./test')
+    parser.add_argument("--filepath", type=str, default=DEFAULT_DIR)
     args = parser.parse_args()
     node_info = {}
     node_info[args.id] = raft_node_base_port + args.id

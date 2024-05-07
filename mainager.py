@@ -2,11 +2,14 @@ import json
 import numpy as np
 import asyncio
 from rpc import RPCManager
-from utils import Event, mainager_port, raft_node_base_port, TOTAL_NODES, get_majority
+from utils import Event, mainager_port, raft_node_base_port, TOTAL_NODES, get_majority, DEFAULT_DIR
 import time
+import sys
 
 class PipeManager(): 
-    def __init__(self, num_nodes):
+    def __init__(self, num_nodes, log_file_path):
+        self.stdout = open(log_file_path + "Pipe_stdout.txt", "w+")
+        sys.stdout = self.stdout
         self.node_info = []
         self.tasks = []
         self.num_nodes = num_nodes
@@ -33,6 +36,11 @@ class PipeManager():
         # pipe to other node
         await self.net.send_individual_message(msg, port)
 
+    async def stdout_flush(self):
+        while True:
+            await asyncio.sleep(5)
+            self.stdout.flush()
+
     async def failure_timer(self):
         while len(self.failure_nodes) < get_majority(self.failure_nodes):
             await asyncio.sleep(20)
@@ -57,10 +65,11 @@ class PipeManager():
         async with self.net.server:
             self.tasks.append(asyncio.create_task(self.net.server.serve_forever()))
             self.tasks.append(asyncio.create_task(self.failure_timer()))
+            self.tasks.append(asyncio.create_task(self.stdout_flush()))
             await asyncio.gather(*self.tasks)
 
 async def main(num_nodes):
-    pm = PipeManager(num_nodes)
+    pm = PipeManager(num_nodes, DEFAULT_DIR)
     await pm.start_piping()
 
 if __name__ == '__main__':
