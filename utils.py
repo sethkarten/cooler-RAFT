@@ -70,7 +70,7 @@ def commit_to_file(entry, filepath, id, flag):
 
     elif flag == "commitlog":
         if not os.path.exists(filepath):
-            with open(filepath, 'w') as f:
+            with open(filepath, 'w+') as f:
                 f.write("")
         with open(filepath, 'a') as f:
             f.write(json.dumps(entry['entry']) + '\n')

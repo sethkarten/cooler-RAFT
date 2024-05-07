@@ -12,6 +12,7 @@ timeouts=(1 10 40 100)
 max_failures=(1 4 10 14) 
 failure_intervals=(0 2 8 32)
 client_intervals=(1 5 10)
+counter=9000
 
 output_dir="./outputs/experiment_logs"
 mkdir -p $output_dir
@@ -26,8 +27,9 @@ for nodes in "${num_nodes[@]}"; do
                             log_filename="${output_dir}/log_n${nodes}_l${latency}_t${timeout}_f${failure}_i${fail_interval}/"
                             mkdir -p $log_filename
                             echo "Running: ${nodes} nodes, ${latency}ms latency, ${timeout}s timeout, ${failure} failures, ${fail_interval}s fail interval , ${client_interval}s client interval"
-                            python3 main.py --num_nodes=$nodes --interval=$timeout --filepath="$log_filename" --latency=$latency --max_failures=$failure --failure_interval=$fail_interval --client_interval=$client_interval
-                            echo "Done"
+                            python3 main.py --base_port=$counter --num_nodes=$nodes --interval=$timeout --filepath="$log_filename" --latency=$latency --max_failures=$failure --failure_interval=$fail_interval --client_interval=$client_interval &
+                            # echo "Done"
+                            ((counter+=100))
                             sleep 5
                         fi
                     done
