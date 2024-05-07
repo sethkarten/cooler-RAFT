@@ -1,5 +1,6 @@
 Notes:
 - Election Timeout needs to be much longer than Replication Timeout or else system breaks. (too many elections -> term is never right + stuff gets written twice in logs, etc.)
+- HI E. PORTS MAY NOT BIND IF THEY ARE OCCUPIED. WE SHOULD PROBABLY HAVE AN AUTO INCREMENT ON THIS IF IT THROWS AN OSError
 
 
 Data 
