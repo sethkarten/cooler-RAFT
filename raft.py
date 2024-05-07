@@ -158,7 +158,7 @@ class RaftNode:
         }
 
         # Send async vote requests to all peers
-        for peer_id in self.peers:
+        for peer_id in self.peers.keys():
             if peer_id == self.id:
                 continue
             resp['destination'] = peer_id

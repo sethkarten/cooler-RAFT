@@ -70,9 +70,15 @@ if __name__ == "__main__":
     client_process.start()
     processes.append(client_process)
 
+    # sleep for 10 minutes, then kill everyone
+    time.sleep(10*60)
     for p in processes:
-        p.join()
-        time.sleep(1)
+        p.kill()
+    manager_process.kill()
 
-    manager_process.join()
+    # for p in processes:
+    #     p.join()
+    #     time.sleep(1)
+
+    # manager_process.join()
 
