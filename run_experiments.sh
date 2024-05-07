@@ -25,7 +25,7 @@ for nodes in "${num_nodes[@]}"; do
                         if (( failure < ((nodes+1)/2) )); then
                             log_filename="${output_dir}/log_n${nodes}_l${latency}_t${timeout}_f${failure}_i${fail_interval}/"
                             mkdir -p $log_filename
-                            echo "Running: ${nodes} nodes, ${latency}ms latency, ${timeout}s timeout, ${failure} failures, ${fail_interval}s fail interval"
+                            echo "Running: ${nodes} nodes, ${latency}ms latency, ${timeout}s timeout, ${failure} failures, ${fail_interval}s fail interval , ${client_interval}s client interval"
                             python3 main.py --num_nodes=$nodes --interval=$timeout --filepath="$log_filename" --latency=$latency --max_failures=$failure --failure_interval=$fail_interval --client_interval=$client_interval
                             echo "Done"
                             sleep 5
