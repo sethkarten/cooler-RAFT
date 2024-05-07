@@ -129,7 +129,7 @@ class RaftNode:
             return
         
         print("STARTING ELECTION for term", self.term_number)
-        commit_to_file("election_start", self.log_file_path + "_election_log_timestamped.txt", self.id, "election_timestamp")
+        commit_to_file("election_start", self.log_file_path + "election_log_timestamped.txt", self.id, "election_timestamp")
 
         self.role = 'candidate'
         self.voted_id = self.id
@@ -156,7 +156,7 @@ class RaftNode:
             resp['destination'] = peer_id
             await self.net.send_network_message(resp)
         self.electionTimerCounter = 0
-        commit_to_file("election_end", self.log_file_path + "_election_log_timestamped.txt", self.id, "election_timestamp")
+        commit_to_file("election_end", self.log_file_path + "election_log_timestamped.txt", self.id, "election_timestamp")
     
     async def replicate(self, peer_id):
         """
@@ -383,9 +383,9 @@ class RaftNode:
 
         if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
             for i in range(self.commit_length, ready):
-                commit_to_file(self.log[i], self.log_file_path + ".txt", self.id, "commitlog") 
-                commit_to_file(self.log[i], self.log_file_path + "_timestamped.txt", self.id, "log_timestamp")
-                commit_to_file("logcommit", self.log_file_path + "_election_log_timestamped.txt", self.id, "election_timestamp")  
+                commit_to_file(self.log[i], self.log_file_path + "commit_log.txt", self.id, "commitlog") 
+                commit_to_file(self.log[i], self.log_file_path + "timestamped.txt", self.id, "log_timestamp")
+                commit_to_file("logcommit", self.log_file_path + "election_log_timestamped.txt", self.id, "election_timestamp")  
                 self.commit_length += 1
             # self.commit_length = ready
 
