@@ -3,6 +3,7 @@ import numpy as np
 import asyncio
 from rpc import RPCManager
 from utils import Event, mainager_port, raft_node_base_port, TOTAL_NODES, get_majority
+import time
 
 class PipeManager(): 
     def __init__(self, num_nodes):

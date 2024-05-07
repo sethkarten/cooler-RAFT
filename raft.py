@@ -7,9 +7,6 @@ from utils import *
 import asyncio
 from utils import get_last_log_term, get_majority, count_acks, mainager_port, raft_node_base_port, TOTAL_NODES
 import random
-import os
-import time
-import csv
 
 class RaftNode:
     def __init__(self, id, node_info, interval, num_nodes, log_file_path, term_number=0, voted_id=None, role='follower', leader=None, votes_total=0, log=None, commit_length=0):
@@ -133,7 +130,7 @@ class RaftNode:
             return
         
         print("STARTING ELECTION for term", self.term_number)
-        self.commit_to_file("election_start", self.log_file_path + "_election_log_timestamped.txt", "election_timestamp")
+        commit_to_file("election_start", self.log_file_path + "_election_log_timestamped.txt", self.id, "election_timestamp")
 
         self.role = 'candidate'
         self.voted_id = self.id
@@ -160,7 +157,7 @@ class RaftNode:
             resp['destination'] = peer_id
             await self.net.send_network_message(resp)
         self.electionTimerCounter = 0
-        self.commit_to_file("election_end", self.log_file_path + "_election_log_timestamped.txt", "election_timestamp")
+        commit_to_file("election_end", self.log_file_path + "_election_log_timestamped.txt", self.id, "election_timestamp")
     
     async def replicate(self, peer_id):
         """
@@ -371,45 +368,6 @@ class RaftNode:
             }
             await self.send_message(resp)
     
-    def commit_to_file(self, entry, filepath, flag):
-        """
-        Append the committed entry to a log file. 
-        flag denotes the type of information we are writing to the file (i.e. whether to include timestamps).
-        """
-
-        print("Writing to txt file...")
-
-        if flag == "log_timestamp":
-            file_exists = os.path.exists(filepath)
-            with open(filepath, 'a', newline='') as csvfile:
-                fieldnames = ['timestamp', 'log_entry']
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                current_time = time.time()
-                
-                if not file_exists:
-                    writer.writeheader()
-                
-                writer.writerow({'timestamp': current_time, 'log_entry': entry['entry']})
-
-        elif flag == "commitlog":
-            if not os.path.exists(filepath):
-                with open(filepath, 'w') as f:
-                    f.write("")
-            with open(filepath, 'a') as f:
-                f.write(json.dumps(entry['entry']) + '\n')
-        
-        elif flag == "election_timestamp":
-            file_exists = os.path.exists(filepath)
-            with open(filepath, 'a', newline='') as csvfile:
-                fieldnames = ['timestamp', 'event_type', 'node']
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                current_time = time.time()
-                
-                if not file_exists:
-                    writer.writeheader()
-                
-                writer.writerow({'timestamp': current_time, 'event_type': entry, 'node': self.id})
-    
     def commit_log(self):
         """
         If Leader receives majority of acks, commit the log entry. 
@@ -426,9 +384,9 @@ class RaftNode:
 
         if ready > 0 and self.log[ready - 1]['term'] == self.term_number:
             for i in range(self.commit_length, ready):
-                self.commit_to_file(self.log[i], self.log_file_path + ".txt", "commitlog") 
-                self.commit_to_file(self.log[i], self.log_file_path + "_timestamped.txt", "log_timestamp")
-                self.commit_to_file("logcommit", self.log_file_path + "_election_log_timestamped.txt", "election_timestamp")  
+                commit_to_file(self.log[i], self.log_file_path + ".txt", self.id, "commitlog") 
+                commit_to_file(self.log[i], self.log_file_path + "_timestamped.txt", self.id, "log_timestamp")
+                commit_to_file("logcommit", self.log_file_path + "_election_log_timestamped.txt", self.id, "election_timestamp")  
                 self.commit_length += 1
             # self.commit_length = ready
 

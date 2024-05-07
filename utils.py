@@ -1,5 +1,8 @@
 from enum import IntEnum
 import numpy as np
+import os
+import time
+import csv
 
 # total number of raft nodes
 TOTAL_NODES = 3
@@ -42,3 +45,42 @@ def count_acks(acked_length, length):
     Count how many peers have acknowledged a log entry at specific index. 
     """
     return sum(1 for ack in acked_length.values() if ack >= length)
+
+def commit_to_file(entry, filepath, id, flag):
+    """
+    Append the committed entry to a log file. 
+    flag denotes the type of information we are writing to the file (i.e. whether to include timestamps).
+    """
+
+    print("Writing to txt file...")
+
+    if flag == "log_timestamp":
+        file_exists = os.path.exists(filepath)
+        with open(filepath, 'a', newline='') as csvfile:
+            fieldnames = ['timestamp', 'log_entry']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            current_time = time.time()
+            
+            if not file_exists:
+                writer.writeheader()
+            
+            writer.writerow({'timestamp': current_time, 'log_entry': entry['entry']})
+
+    elif flag == "commitlog":
+        if not os.path.exists(filepath):
+            with open(filepath, 'w') as f:
+                f.write("")
+        with open(filepath, 'a') as f:
+            f.write(json.dumps(entry['entry']) + '\n')
+    
+    elif flag == "election_timestamp":
+        file_exists = os.path.exists(filepath)
+        with open(filepath, 'a', newline='') as csvfile:
+            fieldnames = ['timestamp', 'event_type', 'node']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            current_time = time.time()
+            
+            if not file_exists:
+                writer.writeheader()
+            
+            writer.writerow({'timestamp': current_time, 'event_type': entry, 'node': id})
