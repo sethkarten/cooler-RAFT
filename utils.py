@@ -20,6 +20,7 @@ class Event(IntEnum):
     Debug = 8
     Client = 9
     Death = 10
+    Leader = 11
 
 
 def get_last_log_term(log):

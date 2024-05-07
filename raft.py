@@ -190,7 +190,15 @@ class RaftNode:
         """
         if self.role != 'leader': 
             return
-        
+        msg = {
+            'id': self.id,
+            'destination': -2,   # mainager
+            'flag': Event.Leader
+        }
+
+        await self.net.send_network_message(msg)
+        # tell mainager that node is the leader
+
         print("REPLICATING LOG")
 
         for peer_id in self.peers:
