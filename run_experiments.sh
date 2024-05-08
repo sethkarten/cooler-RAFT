@@ -1,19 +1,11 @@
 #!/bin/bash
 
-# num_nodes=(3 10 30)
 num_nodes=(3 5 10)
 latencies=(0 2 8)
-# latencies=(2)
-# timeouts=(1 10 40 100)
-# timeouts=(1 40 100)
-timeouts=(1 10 30)
-# max_failures=(1 4 10 14) 
+timeouts=(1 10 30 100)
 max_failures=(1 4 14) 
-# max_failures=(1) 
-# failure_intervals=(0 2 8 32)
 failure_intervals=(100 200)
 client_intervals=(1 5 10)
-# client_intervals=(5)
 counter=9000
 
 max_jobs=31
@@ -33,14 +25,7 @@ for nodes in "${num_nodes[@]}"; do
                             mkdir -p $log_filename
                             echo "Running: ${nodes} nodes, ${latency}ms latency, ${timeout}s timeout, ${failure} failures, ${fail_interval}s fail interval , ${client_interval}s client interval"
                             python3 main.py --name=$log_filename --base_port=$counter --num_nodes=$nodes --interval=$timeout --filepath="$log_filename" --latency=$latency --max_failures=$failure --failure_interval=$fail_interval --client_interval=$client_interval &
-                            # echo "Done"
                             ((counter+=100))
-                            # sleep 5
-                            # ((active_jobs++))
-                            # if (( active_jobs >= max_jobs )); then
-                            #     wait
-                            #     ((active_jobs--))
-                            # fi
                         fi
                     done
                 done
