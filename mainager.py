@@ -48,9 +48,6 @@ class PipeManager():
             while int(msg['destination']) in self.failure_nodes:
                 msg['destination'] = np.random.randint(0, self.num_nodes)
                 receiver = msg['destination']
-        # print(f'Received msg from node {sender}. Forwarding to {receiver}')
-        # print(msg)
-        # print('receiver', receiver)
         port = self.raft_node_base_port + receiver
         # pipe to other node
         # add network latency
