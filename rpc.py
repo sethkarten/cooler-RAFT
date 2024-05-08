@@ -9,7 +9,6 @@ class RPCManager:
         self.mainager_port = mainager_port
         print(f'manager port {mainager_port}')
 
-
     async def start_server(self):
         try:
             self.server = await asyncio.start_server(self.handle_network_message, '127.0.0.1', self.port)
