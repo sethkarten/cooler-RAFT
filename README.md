@@ -1,4 +1,4 @@
-Raft Implementation
+Raft Consensus Algorithm Implemented in Python
 
 For installation and usage:
 ```
